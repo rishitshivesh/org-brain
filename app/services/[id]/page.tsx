@@ -35,7 +35,9 @@ export default async function ServicePage({ params }: { params: Promise<{ id: st
         title={service.name}
         description={`${team?.name ?? service.ownerTeamId} owns this service${repository ? ` · ${repository.name}` : ""}.`}
         actions={
-          <Button asChild variant="outline" size="sm"><Link href="/services"><ArrowLeft /> Services</Link></Button>
+          <Button render={<Link href="/services" />} variant="outline" size="sm">
+            <ArrowLeft /> Services
+          </Button>
         }
       />
 
@@ -93,7 +95,15 @@ export default async function ServicePage({ params }: { params: Promise<{ id: st
               <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Deployments</span><span className="font-medium">{deployments.length}</span></div>
               <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Incidents</span><span className="font-medium">{incidents.length}</span></div>
               {incidents.map((incident) => (
-                <Button key={incident.id} asChild variant="outline" size="sm" className="w-full justify-start"><Link href={`/incidents/${incident.id}`}><Boxes />{incident.id} · {incident.severity}</Link></Button>
+                <Button
+                  key={incident.id}
+                  render={<Link href={`/incidents/${incident.id}`} />}
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                >
+                  <Boxes /> {incident.id} · {incident.severity}
+                </Button>
               ))}
             </CardContent>
           </Card>

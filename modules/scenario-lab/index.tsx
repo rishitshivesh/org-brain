@@ -12,9 +12,9 @@ import { orgBrainData } from "@/lib/org-brain";
 
 const scenarios = [
   {
-    id: "claims-worker-regression",
-    title: "Kafka consumer regression",
-    description: "Inject the seeded claims-worker rollout, trace slowdown, lag spike and related code context.",
+    id: "claims-latency",
+    title: "Claims submission latency spike",
+    description: "Inject a seeded production regression with correlated logs, traces, metrics, deployment and code context.",
     icon: Activity,
     ready: true,
     incidentId: "INC-2409",
@@ -22,7 +22,7 @@ const scenarios = [
   },
   {
     id: "database-pool",
-    title: "Database pool exhaustion",
+    title: "Intermittent checkout timeouts",
     description: "Reserved fixture for the next dataset expansion. The UI is ready, the evidence pack is not fabricated yet.",
     icon: DatabaseZap,
     ready: false,
@@ -30,7 +30,7 @@ const scenarios = [
   },
   {
     id: "retry-storm",
-    title: "Downstream retry storm",
+    title: "Cascading downstream failures",
     description: "Reserved fixture for dependency and cascading-failure analysis.",
     icon: BadgeAlert,
     ready: false,
@@ -47,7 +47,7 @@ export default function ScenarioLabComponent() {
       <PageHeader
         eyebrow="Deterministic fixtures"
         title="Scenario Lab"
-        description="Inject consistent operational evidence for demos and development. The investigator sees logs and traces, not the hidden answer."
+        description="Inject consistent operational evidence for demos and development. The investigator sees symptoms and evidence, not the hidden answer."
         actions={active ? <Button variant="outline" size="sm" onClick={() => setActive(null)}><RotateCcw /> Reset</Button> : null}
       />
       <div className="grid gap-4 p-6 xl:grid-cols-3">
@@ -71,7 +71,13 @@ export default function ScenarioLabComponent() {
                   <div className="rounded-lg border bg-muted/30 p-3 text-sm">
                     <p className="font-medium">Injected {incident?.id}</p>
                     <p className="mt-1 text-xs text-muted-foreground">{incident?.title}</p>
-                    <Button asChild size="sm" className="mt-3 w-full"><Link href={`/incidents/${incidentId}`}>Open incident</Link></Button>
+                    <Button
+                      render={<Link href={`/incidents/${incidentId}`} />}
+                      size="sm"
+                      className="mt-3 w-full"
+                    >
+                      Open incident
+                    </Button>
                   </div>
                 ) : (
                   <Button className="w-full" variant={ready ? "default" : "outline"} disabled={!ready} onClick={() => setActive(id)}>

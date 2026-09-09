@@ -26,17 +26,15 @@ export function AppSidebar() {
       <SidebarHeader className="border-b">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link href="/">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-foreground text-background">
-                  <BrainCircuit className="size-4" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold">Org Brain</span>
-                  <span className="block truncate text-xs text-muted-foreground">Engineering intelligence</span>
-                </span>
-                <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
-              </Link>
+            <SidebarMenuButton size="lg" render={<Link href="/" />}>
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-foreground text-background">
+                <BrainCircuit className="size-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold">Org Brain</span>
+                <span className="block truncate text-xs text-muted-foreground">Engineering intelligence</span>
+              </span>
+              <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -51,11 +49,13 @@ export function AppSidebar() {
 
               return (
                 <SidebarMenuItem key={href}>
-                  <SidebarMenuButton asChild isActive={active} tooltip={label}>
-                    <Link href={href}>
-                      <Icon />
-                      <span>{label}</span>
-                    </Link>
+                  <SidebarMenuButton
+                    isActive={active}
+                    tooltip={label}
+                    render={<Link href={href} />}
+                  >
+                    <Icon />
+                    <span>{label}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               );

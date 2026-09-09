@@ -44,8 +44,8 @@ export default async function IncidentPage({ params }: { params: Promise<{ id: s
         title={incident.title}
         description={`Started ${new Date(incident.startedAt).toLocaleString()} · ${incident.status}`}
         actions={
-          <Button asChild variant="outline" size="sm">
-            <Link href="/incidents"><ArrowLeft /> Incidents</Link>
+          <Button render={<Link href="/incidents" />} variant="outline" size="sm">
+            <ArrowLeft /> Incidents
           </Button>
         }
       />

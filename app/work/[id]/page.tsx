@@ -30,10 +30,8 @@ export default async function WorkItemPage({ params }: { params: Promise<{ id: s
         title={item.title}
         description={item.description}
         actions={
-          <Button asChild variant="outline" size="sm">
-            <Link href="/work">
-              <ArrowLeft /> Work
-            </Link>
+          <Button render={<Link href="/work" />} variant="outline" size="sm">
+            <ArrowLeft /> Work
           </Button>
         }
       />
@@ -92,14 +90,17 @@ export default async function WorkItemPage({ params }: { params: Promise<{ id: s
           </CardHeader>
           <CardContent className="space-y-2">
             {services.map((service) => (
-              <Button key={service.id} asChild variant="ghost" className="h-auto w-full justify-start px-3 py-2">
-                <Link href={`/services/${service.id}`}>
-                  <Link2 className="size-4" />
-                  <span className="min-w-0 text-left">
-                    <span className="block truncate text-sm font-medium">{service.name}</span>
-                    <span className="block text-xs text-muted-foreground">{service.type}</span>
-                  </span>
-                </Link>
+              <Button
+                key={service.id}
+                render={<Link href={`/services/${service.id}`} />}
+                variant="ghost"
+                className="h-auto w-full justify-start px-3 py-2"
+              >
+                <Link2 className="size-4" />
+                <span className="min-w-0 text-left">
+                  <span className="block truncate text-sm font-medium">{service.name}</span>
+                  <span className="block text-xs text-muted-foreground">{service.type}</span>
+                </span>
               </Button>
             ))}
           </CardContent>
