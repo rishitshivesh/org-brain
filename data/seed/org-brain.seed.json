@@ -1,0 +1,441 @@
+{
+  "organization": {
+    "id": "ORG-01",
+    "name": "Acme Health Engineering"
+  },
+  "teams": [
+    {
+      "id": "TEAM-CLAIMS",
+      "name": "Claims Platform",
+      "description": "Owns claims submission, settlement and document processing flows."
+    },
+    {
+      "id": "TEAM-PLATFORM",
+      "name": "Platform Reliability",
+      "description": "Owns shared platform reliability, observability and deployment tooling."
+    },
+    {
+      "id": "TEAM-RULES",
+      "name": "Rules & Automation",
+      "description": "Owns business rule evaluation and configurable workflow decisions."
+    }
+  ],
+  "repositories": [
+    {
+      "id": "REPO-CLAIMS-WEB",
+      "name": "claims-web",
+      "ownerTeamId": "TEAM-CLAIMS",
+      "defaultBranch": "main",
+      "language": "TypeScript",
+      "framework": "Next.js"
+    },
+    {
+      "id": "REPO-CLAIMS-API",
+      "name": "claims-api",
+      "ownerTeamId": "TEAM-CLAIMS",
+      "defaultBranch": "main",
+      "language": "TypeScript",
+      "framework": "NestJS"
+    },
+    {
+      "id": "REPO-CLAIMS-WORKER",
+      "name": "claims-worker",
+      "ownerTeamId": "TEAM-CLAIMS",
+      "defaultBranch": "main",
+      "language": "TypeScript",
+      "framework": "Node.js"
+    },
+    {
+      "id": "REPO-DOCUMENT",
+      "name": "document-service",
+      "ownerTeamId": "TEAM-CLAIMS",
+      "defaultBranch": "main",
+      "language": "Go",
+      "framework": "chi"
+    },
+    {
+      "id": "REPO-RULES",
+      "name": "rules-engine",
+      "ownerTeamId": "TEAM-RULES",
+      "defaultBranch": "main",
+      "language": "Java",
+      "framework": "Spring Boot"
+    }
+  ],
+  "services": [
+    {
+      "id": "SVC-CLAIMS-WEB",
+      "name": "claims-web",
+      "repositoryId": "REPO-CLAIMS-WEB",
+      "ownerTeamId": "TEAM-CLAIMS",
+      "type": "frontend"
+    },
+    {
+      "id": "SVC-CLAIMS-API",
+      "name": "claims-api",
+      "repositoryId": "REPO-CLAIMS-API",
+      "ownerTeamId": "TEAM-CLAIMS",
+      "type": "api"
+    },
+    {
+      "id": "SVC-DOCUMENT",
+      "name": "document-service",
+      "repositoryId": "REPO-DOCUMENT",
+      "ownerTeamId": "TEAM-CLAIMS",
+      "type": "service"
+    },
+    {
+      "id": "SVC-RULES",
+      "name": "rules-engine",
+      "repositoryId": "REPO-RULES",
+      "ownerTeamId": "TEAM-RULES",
+      "type": "service"
+    },
+    {
+      "id": "SVC-CLAIMS-WORKER",
+      "name": "claims-worker",
+      "repositoryId": "REPO-CLAIMS-WORKER",
+      "ownerTeamId": "TEAM-CLAIMS",
+      "type": "worker"
+    }
+  ],
+  "serviceDependencies": [
+    {
+      "from": "SVC-CLAIMS-WEB",
+      "to": "SVC-CLAIMS-API",
+      "protocol": "HTTPS"
+    },
+    {
+      "from": "SVC-CLAIMS-API",
+      "to": "SVC-RULES",
+      "protocol": "HTTPS"
+    },
+    {
+      "from": "SVC-CLAIMS-API",
+      "to": "SVC-DOCUMENT",
+      "protocol": "HTTPS"
+    },
+    {
+      "from": "SVC-CLAIMS-API",
+      "to": "SVC-CLAIMS-WORKER",
+      "protocol": "Kafka",
+      "topic": "claims.submitted"
+    },
+    {
+      "from": "SVC-CLAIMS-WORKER",
+      "to": "SVC-DOCUMENT",
+      "protocol": "HTTPS"
+    }
+  ],
+  "workItems": [
+    {
+      "id": "ADO-3904",
+      "type": "Epic",
+      "title": "Claims workflow modernization",
+      "state": "Active",
+      "ownerTeamId": "TEAM-CLAIMS",
+      "tags": ["claims", "modernization"],
+      "relatedServiceIds": [
+        "SVC-CLAIMS-WEB",
+        "SVC-CLAIMS-API",
+        "SVC-CLAIMS-WORKER"
+      ]
+    },
+    {
+      "id": "ADO-3988",
+      "type": "Feature",
+      "title": "All-or-nothing settlement validation",
+      "state": "Done",
+      "parentId": "ADO-3904",
+      "ownerTeamId": "TEAM-CLAIMS",
+      "description": "Settlement requests must either complete for the full approved amount or fail without creating a partial settlement state.",
+      "tags": ["settlement", "validation"],
+      "relatedServiceIds": ["SVC-CLAIMS-API", "SVC-RULES"]
+    },
+    {
+      "id": "ADO-4182",
+      "type": "Feature",
+      "title": "Asynchronous document categorization",
+      "state": "Done",
+      "parentId": "ADO-3904",
+      "ownerTeamId": "TEAM-CLAIMS",
+      "description": "Move document categorization out of the synchronous submission path and process categorization asynchronously.",
+      "tags": ["documents", "async"],
+      "relatedServiceIds": [
+        "SVC-CLAIMS-API",
+        "SVC-DOCUMENT",
+        "SVC-CLAIMS-WORKER"
+      ]
+    },
+    {
+      "id": "ADO-4217",
+      "type": "Story",
+      "title": "Replace categorization polling with event updates",
+      "state": "Done",
+      "parentId": "ADO-4182",
+      "ownerTeamId": "TEAM-CLAIMS",
+      "description": "Remove repeated polling from claims-web and notify the client when asynchronous processing completes.",
+      "tags": ["websocket", "frontend"],
+      "relatedServiceIds": ["SVC-CLAIMS-WEB", "SVC-CLAIMS-API"]
+    },
+    {
+      "id": "ADO-4231",
+      "type": "Feature",
+      "title": "Partial settlement support for OPD claims",
+      "state": "Proposed",
+      "parentId": "ADO-3904",
+      "ownerTeamId": "TEAM-CLAIMS",
+      "description": "Allow OPD claims to settle approved line items independently instead of requiring settlement of the entire approved amount.",
+      "tags": ["opd", "settlement"],
+      "relatedServiceIds": [
+        "SVC-CLAIMS-WEB",
+        "SVC-CLAIMS-API",
+        "SVC-RULES"
+      ],
+      "conflictsWith": ["ADO-3988"]
+    },
+    {
+      "id": "ADO-4264",
+      "type": "Story",
+      "title": "Move document validation into claims consumer",
+      "state": "Done",
+      "parentId": "ADO-4182",
+      "ownerTeamId": "TEAM-CLAIMS",
+      "description": "Validate required document categories while processing submitted claims.",
+      "relatedServiceIds": [
+        "SVC-CLAIMS-WORKER",
+        "SVC-DOCUMENT"
+      ]
+    },
+    {
+      "id": "ADO-4312",
+      "type": "Bug",
+      "title": "Claims submission latency after worker deployment",
+      "state": "Investigating",
+      "ownerTeamId": "TEAM-CLAIMS",
+      "description": "Claims submission p95 increased after claims-worker v3.19.2 rollout.",
+      "relatedServiceIds": [
+        "SVC-CLAIMS-API",
+        "SVC-CLAIMS-WORKER"
+      ]
+    }
+  ],
+  "commits": [
+    {
+      "sha": "8fc19b2",
+      "repositoryId": "REPO-CLAIMS-WORKER",
+      "message": "validate document categories before completing claim",
+      "author": "Aarav Mehta",
+      "timestamp": "2026-09-08T11:42:00Z",
+      "workItemIds": ["ADO-4264"],
+      "changedFiles": [
+        "src/consumers/claim-submitted.consumer.ts",
+        "src/services/document-validation.service.ts"
+      ]
+    },
+    {
+      "sha": "312ae84",
+      "repositoryId": "REPO-CLAIMS-WORKER",
+      "message": "add validation metrics",
+      "author": "Aarav Mehta",
+      "timestamp": "2026-09-08T12:08:00Z",
+      "workItemIds": ["ADO-4264"],
+      "changedFiles": [
+        "src/metrics/document-validation.metrics.ts"
+      ]
+    }
+  ],
+  "sourceSnapshots": [
+    {
+      "repositoryId": "REPO-CLAIMS-WORKER",
+      "commitSha": "8fc19b2",
+      "path": "src/services/document-validation.service.ts",
+      "content": "for (const document of documents) {\n  await this.documentClient.validate(document);\n}"
+    },
+    {
+      "repositoryId": "REPO-CLAIMS-WORKER",
+      "commitSha": "8fc19b2",
+      "path": "src/consumers/claim-submitted.consumer.ts",
+      "content": "await this.documentValidationService.validateRequiredDocuments(claim.documents);\nawait this.claimProcessor.process(claim);"
+    }
+  ],
+  "deployments": [
+    {
+      "id": "DEP-2198",
+      "serviceId": "SVC-CLAIMS-WORKER",
+      "environment": "production",
+      "version": "v3.19.2",
+      "commitShas": ["8fc19b2", "312ae84"],
+      "status": "Succeeded",
+      "deployedAt": "2026-09-08T13:54:00Z"
+    },
+    {
+      "id": "DEP-2187",
+      "serviceId": "SVC-CLAIMS-WORKER",
+      "environment": "production",
+      "version": "v3.19.1",
+      "commitShas": [],
+      "status": "Succeeded",
+      "deployedAt": "2026-09-05T09:18:00Z"
+    }
+  ],
+  "incidents": [
+    {
+      "id": "INC-2409",
+      "title": "Claims submission latency increased",
+      "severity": "SEV2",
+      "status": "Investigating",
+      "startedAt": "2026-09-08T14:00:00Z",
+      "affectedServiceIds": [
+        "SVC-CLAIMS-API",
+        "SVC-CLAIMS-WORKER"
+      ],
+      "traceIds": ["tr_8b92f17c"],
+      "correlatedDeploymentIds": ["DEP-2198"],
+      "workItemIds": ["ADO-4312"]
+    }
+  ],
+  "traces": [
+    {
+      "id": "tr_8b92f17c",
+      "name": "POST /claims/submit",
+      "startedAt": "2026-09-08T14:07:12.101Z",
+      "durationMs": 4178,
+      "status": "error",
+      "spans": [
+        {
+          "id": "sp_01",
+          "serviceId": "SVC-CLAIMS-WEB",
+          "operation": "submitClaim",
+          "durationMs": 4190,
+          "status": "error"
+        },
+        {
+          "id": "sp_02",
+          "parentSpanId": "sp_01",
+          "serviceId": "SVC-CLAIMS-API",
+          "operation": "POST /claims/submit",
+          "durationMs": 4135,
+          "status": "error"
+        },
+        {
+          "id": "sp_03",
+          "parentSpanId": "sp_02",
+          "serviceId": "SVC-RULES",
+          "operation": "evaluateClaimRules",
+          "durationMs": 71,
+          "status": "ok"
+        },
+        {
+          "id": "sp_04",
+          "parentSpanId": "sp_02",
+          "serviceId": "SVC-CLAIMS-WORKER",
+          "operation": "processClaim",
+          "durationMs": 3874,
+          "status": "error"
+        },
+        {
+          "id": "sp_05",
+          "parentSpanId": "sp_04",
+          "serviceId": "SVC-DOCUMENT",
+          "operation": "validateDocumentCategories",
+          "durationMs": 3412,
+          "status": "ok"
+        }
+      ]
+    }
+  ],
+  "logs": [
+    {
+      "id": "LOG-01",
+      "timestamp": "2026-09-08T14:07:12.428Z",
+      "serviceId": "SVC-CLAIMS-API",
+      "level": "info",
+      "traceId": "tr_8b92f17c",
+      "message": "Claim submission accepted for asynchronous processing"
+    },
+    {
+      "id": "LOG-02",
+      "timestamp": "2026-09-08T14:07:12.691Z",
+      "serviceId": "SVC-CLAIMS-WORKER",
+      "level": "info",
+      "traceId": "tr_8b92f17c",
+      "message": "Starting required document validation for 4 documents"
+    },
+    {
+      "id": "LOG-03",
+      "timestamp": "2026-09-08T14:07:16.104Z",
+      "serviceId": "SVC-CLAIMS-WORKER",
+      "level": "warn",
+      "traceId": "tr_8b92f17c",
+      "message": "Document validation exceeded expected processing threshold",
+      "metadata": {
+        "durationMs": 3412,
+        "baselineMs": 180
+      }
+    },
+    {
+      "id": "LOG-04",
+      "timestamp": "2026-09-08T14:07:16.231Z",
+      "serviceId": "SVC-CLAIMS-WORKER",
+      "level": "error",
+      "traceId": "tr_8b92f17c",
+      "message": "Claim processing deadline exceeded"
+    }
+  ],
+  "metrics": [
+    {
+      "serviceId": "SVC-CLAIMS-WORKER",
+      "metric": "consumer_processing_ms",
+      "before": 42,
+      "after": 890,
+      "unit": "ms"
+    },
+    {
+      "serviceId": "SVC-CLAIMS-WORKER",
+      "metric": "consumer_lag",
+      "before": 4200,
+      "after": 91000,
+      "unit": "messages"
+    },
+    {
+      "serviceId": "SVC-CLAIMS-WORKER",
+      "metric": "cpu_percent",
+      "before": 41,
+      "after": 43,
+      "unit": "%"
+    },
+    {
+      "serviceId": "SVC-CLAIMS-WORKER",
+      "metric": "memory_percent",
+      "before": 56,
+      "after": 58,
+      "unit": "%"
+    }
+  ],
+  "architectureDecisions": [
+    {
+      "id": "ADR-018",
+      "title": "Settlement state remains centralized in claims-api",
+      "status": "Accepted",
+      "summary": "Settlement lifecycle state must be owned by claims-api. Rules-engine determines eligibility but must not create an independent settlement lifecycle.",
+      "relatedServiceIds": [
+        "SVC-CLAIMS-API",
+        "SVC-RULES"
+      ],
+      "relatedWorkItemIds": ["ADO-3988"]
+    },
+    {
+      "id": "ADR-026",
+      "title": "Document categorization runs asynchronously",
+      "status": "Accepted",
+      "summary": "Document categorization and downstream validation should not block the synchronous claim submission request.",
+      "relatedServiceIds": [
+        "SVC-CLAIMS-API",
+        "SVC-CLAIMS-WORKER",
+        "SVC-DOCUMENT"
+      ],
+      "relatedWorkItemIds": ["ADO-4182", "ADO-4217"]
+    }
+  ]
+}
