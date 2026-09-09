@@ -1,47 +1,61 @@
 "use client";
+
+import { BrainCircuit, ChevronsUpDown, CircleHelp, Settings } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
 } from "@/components/ui/sidebar";
 import { SIDEBAR_ITEMS } from "@/constants";
-import { BrainCircuit } from "lucide-react";
 
 export function AppSidebar() {
+  const pathname = usePathname();
+
   return (
-    <Sidebar>
-      <SidebarHeader />
+    <Sidebar collapsible="icon">
+      <SidebarHeader className="border-b">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" asChild>
+              <Link href="/">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-foreground text-background">
+                  <BrainCircuit className="size-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold">Org Brain</span>
+                  <span className="block truncate text-xs text-muted-foreground">Engineering intelligence</span>
+                </span>
+                <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
 
       <SidebarContent>
-        <SidebarHeader>
-          <div className={"flex gap-2 items-center"}>
-            <BrainCircuit
-              size={48}
-              className={"p-1.5 bg-accent rounded-xl aspect-square"}
-            />
-            <span className="text-lg font-bold">AIOps</span>
-          </div>
-        </SidebarHeader>
         <SidebarGroup>
+          <SidebarGroupLabel>Workspace</SidebarGroupLabel>
           <SidebarMenu>
-            {SIDEBAR_ITEMS.map((item) => {
-              const { icon: Icon, label, href } = item;
+            {SIDEBAR_ITEMS.map(({ href, icon: Icon, label }) => {
+              const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
 
               return (
                 <SidebarMenuItem key={href}>
-                  <SidebarMenuButton
-                    className={"flex items-center gap-2"}
-                    onClick={() => {
-                      window.location.href = href;
-                    }}
-                  >
-                    <Icon />
-                    <span>{label}</span>
+                  <SidebarMenuButton asChild isActive={active} tooltip={label}>
+                    <Link href={href}>
+                      <Icon />
+                      <span>{label}</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               );
@@ -50,7 +64,23 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter />
+      <SidebarFooter className="border-t">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton tooltip="Help">
+              <CircleHelp />
+              <span>Help</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton tooltip="Settings">
+              <Settings />
+              <span>Settings</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   );
 }
