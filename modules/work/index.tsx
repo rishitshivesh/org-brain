@@ -1,9 +1,8 @@
 import { AlertTriangle, Boxes, CircleDot, ListTodo } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { DataTable } from "@/components/ui/data-table";
 import { PageHeader } from "@/modules/common/page-header";
-import { columns } from "@/modules/work/columns";
+import { WorkTable } from "@/modules/work/work-table";
 import { getWorkSummary, orgBrainData } from "@/lib/org-brain";
 
 export default function WorkComponent() {
@@ -41,9 +40,7 @@ export default function WorkComponent() {
           ))}
         </div>
 
-        <div className="rounded-xl border bg-card p-1 shadow-sm">
-          <DataTable data={orgBrainData.workItems} columns={columns} />
-        </div>
+        <WorkTable data={orgBrainData.workItems} />
       </div>
     </div>
   );
