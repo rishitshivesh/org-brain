@@ -1,10 +1,9 @@
-import { Button } from "@/components/ui/button"
-import {ChatExample} from "@/modules/chat";
+import { ChatExample } from "@/modules/chat";
 
 export default function Page() {
   return (
-    <div className="">
+    <div className="w-full">
       <ChatExample />
     </div>
-  )
+  );
 }

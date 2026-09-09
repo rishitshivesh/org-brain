@@ -24,7 +24,7 @@ const promptSuggestions = [
 export function ChatExample() {
     return (
         <AgentChat
-            messages={[]}
+            messages={messages}
             status="ready"
             onSend={() => {}}
             onStop={() => {}}
