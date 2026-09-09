@@ -1,5 +1,8 @@
 import {
+  BookOpenCheck,
+  Cable,
   Computer,
+  FlaskConical,
   MessageSquare,
   OctagonAlertIcon,
   WorkflowIcon,
@@ -39,16 +42,16 @@ export const SIDEBAR_ITEMS = [
   {
     label: "Graph",
     href: APP_ROUTES.graph,
-    icon: MessageSquare,
+    icon: Cable,
   },
   {
     label: "Knowledge",
     href: APP_ROUTES.knowledge,
-    icon: MessageSquare,
+    icon: BookOpenCheck,
   },
   {
     label: "Scenario Lab",
     href: APP_ROUTES.scenarioLab,
-    icon: MessageSquare,
+    icon: FlaskConical,
   },
 ];

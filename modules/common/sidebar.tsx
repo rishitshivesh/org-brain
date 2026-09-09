@@ -1,3 +1,4 @@
+"use client";
 import {
   Sidebar,
   SidebarContent,
@@ -33,7 +34,12 @@ export function AppSidebar() {
 
               return (
                 <SidebarMenuItem key={href}>
-                  <SidebarMenuButton className={"flex items-center gap-2"}>
+                  <SidebarMenuButton
+                    className={"flex items-center gap-2"}
+                    onClick={() => {
+                      window.location.href = href;
+                    }}
+                  >
                     <Icon />
                     <span>{label}</span>
                   </SidebarMenuButton>
