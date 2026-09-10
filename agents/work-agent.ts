@@ -5,12 +5,26 @@ import type { SpecialistAgentResult } from "./types";
 
 const workItemPattern = /ADO-\d+/i;
 
+function getWorkLookup(query: string): string {
+  const workItemId = query.match(workItemPattern)?.[0].toUpperCase();
+  if (workItemId) return workItemId;
+
+  const normalized = query.toLowerCase();
+  if (normalized.includes("partial settlement") || normalized.includes("opd")) {
+    return "partial settlement";
+  }
+  if (normalized.includes("document categorization")) {
+    return "document categorization";
+  }
+
+  return query;
+}
+
 export async function runWorkAgent(
   providers: OrgBrainProviders,
   query: string,
 ): Promise<SpecialistAgentResult | null> {
-  const workItemId = query.match(workItemPattern)?.[0].toUpperCase();
-  const lookup = workItemId ?? query;
+  const lookup = getWorkLookup(query);
   const context = await buildWorkPlanningContext(providers, lookup);
   if (!context) return null;
 
@@ -46,7 +60,10 @@ export async function runWorkAgent(
         id: `work-impact-${context.workItem.id}`,
         name: "resolve_work_impact",
         input: { workItemId: context.workItem.id },
-        output: { services: serviceNames, repositories: context.repositories.map((repo) => repo.name) },
+        output: {
+          services: serviceNames,
+          repositories: context.repositories.map((repo) => repo.name),
+        },
       },
       {
         id: `work-conflicts-${context.workItem.id}`,
