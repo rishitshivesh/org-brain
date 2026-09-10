@@ -32,6 +32,15 @@ export interface RemoteMemoryMatch {
   incidentId?: string;
   rootCause?: string;
   mitigation?: string;
+  source: "vectorize" | "d1";
+}
+
+export interface RemoteHandoff {
+  id: string;
+  kind: string;
+  payload: WorkItemDraft;
+  status: string;
+  createdAt: string;
 }
 
 function endpoint(path: string): string {
@@ -158,6 +167,13 @@ export async function getRemoteHistory(limit = 30): Promise<RemoteHistoryItem[]>
     endpoint(`/v1/history?limit=${Math.max(1, Math.min(100, limit))}`),
   );
   return response.history;
+}
+
+export async function getRemoteHandoffs(): Promise<RemoteHandoff[]> {
+  const response = await requestJson<{ handoffs: RemoteHandoff[] }>(
+    endpoint("/v1/handoffs"),
+  );
+  return response.handoffs;
 }
 
 export async function searchRemoteMemory(
