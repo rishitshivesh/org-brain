@@ -9,3 +9,4 @@ out
 .yarn/install-state.gz
 .DS_Store
 *.log
+*.tsbuildinfo
