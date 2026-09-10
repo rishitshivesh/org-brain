@@ -1,6 +1,7 @@
 import {
   BookOpenCheck,
   Cable,
+  Code2,
   Computer,
   FlaskConical,
   Gauge,
@@ -18,6 +19,7 @@ export const APP_ROUTES = {
   knowledge: "/knowledge",
   scenarioLab: "/scenario-lab",
   evaluations: "/evaluations",
+  architecture: "/architecture",
 } as const;
 
 export const SIDEBAR_ITEMS = [
@@ -60,5 +62,10 @@ export const SIDEBAR_ITEMS = [
     label: "Evaluations",
     href: APP_ROUTES.evaluations,
     icon: Gauge,
+  },
+  {
+    label: "Architecture",
+    href: APP_ROUTES.architecture,
+    icon: Code2,
   },
 ];
