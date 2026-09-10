@@ -25,9 +25,13 @@ export function PageHeader({
               {eyebrow}
             </Badge>
           ) : null}
-          <h1 className="text-2xl font-semibold tracking-[-0.035em] md:text-3xl">{title}</h1>
+          <h1 className="text-2xl font-semibold tracking-[-0.035em] md:text-3xl">
+            {title}
+          </h1>
           {description ? (
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{description}</p>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+              {description}
+            </p>
           ) : null}
         </div>
         {actions ? <div className="shrink-0">{actions}</div> : null}

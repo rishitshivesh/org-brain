@@ -1,6 +1,11 @@
 "use client";
 
-import { BrainCircuit, ChevronsUpDown, CircleHelp, Settings } from "lucide-react";
+import {
+  BrainCircuit,
+  ChevronsUpDown,
+  CircleHelp,
+  Settings,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -22,7 +27,10 @@ export function AppSidebar() {
   const pathname = usePathname();
 
   return (
-    <Sidebar collapsible="icon" className="border-r bg-sidebar/92 backdrop-blur-xl">
+    <Sidebar
+      collapsible="icon"
+      className="border-r bg-sidebar/92 backdrop-blur-xl"
+    >
       <SidebarHeader className="border-b bg-sidebar/80">
         <SidebarMenu>
           <SidebarMenuItem>
@@ -35,8 +43,12 @@ export function AppSidebar() {
                 <BrainCircuit className="size-4" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold">Org Brain</span>
-                <span className="block truncate text-xs text-muted-foreground">Engineering intelligence</span>
+                <span className="block truncate text-sm font-semibold">
+                  Org Brain
+                </span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  Engineering intelligence
+                </span>
               </span>
               <ChevronsUpDown className="ml-auto size-4 text-muted-foreground opacity-60 transition-opacity group-hover/brand:opacity-100" />
             </SidebarMenuButton>
@@ -46,10 +58,13 @@ export function AppSidebar() {
 
       <SidebarContent className="portal-scroll">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[11px] uppercase tracking-[0.16em]">Workspace</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[11px] uppercase tracking-[0.16em]">
+            Workspace
+          </SidebarGroupLabel>
           <SidebarMenu className="gap-1">
             {SIDEBAR_ITEMS.map(({ href, icon: Icon, label }) => {
-              const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+              const active =
+                href === "/" ? pathname === "/" : pathname.startsWith(href);
 
               return (
                 <SidebarMenuItem key={href}>
@@ -75,13 +90,19 @@ export function AppSidebar() {
       <SidebarFooter className="border-t bg-sidebar/80">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Help" className="transition-colors duration-200">
+            <SidebarMenuButton
+              tooltip="Help"
+              className="transition-colors duration-200"
+            >
               <CircleHelp />
               <span>Help</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Settings" className="transition-colors duration-200">
+            <SidebarMenuButton
+              tooltip="Settings"
+              className="transition-colors duration-200"
+            >
               <Settings />
               <span>Settings</span>
             </SidebarMenuButton>

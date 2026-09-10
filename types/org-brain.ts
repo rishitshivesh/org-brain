@@ -19,11 +19,7 @@ export type ArchitectureDecisionId = EntityId;
 
 export type ISODateString = string;
 
-export type EntityStatus =
-    | "active"
-    | "inactive"
-    | "deprecated"
-    | "unknown";
+export type EntityStatus = "active" | "inactive" | "deprecated" | "unknown";
 
 /* ============================================================
  * Organization
@@ -31,8 +27,8 @@ export type EntityStatus =
  */
 
 export interface Organization {
-    id: EntityId;
-    name: string;
+  id: EntityId;
+  name: string;
 }
 
 /* ============================================================
@@ -41,10 +37,10 @@ export interface Organization {
  */
 
 export interface Team {
-    id: TeamId;
-    name: string;
-    description?: string;
-    status?: EntityStatus;
+  id: TeamId;
+  name: string;
+  description?: string;
+  status?: EntityStatus;
 }
 
 /* ============================================================
@@ -53,31 +49,31 @@ export interface Team {
  */
 
 export type RepositoryLanguage =
-    | "TypeScript"
-    | "JavaScript"
-    | "Java"
-    | "Go"
-    | "Python"
-    | "C#"
-    | "Rust"
-    | "Other";
+  | "TypeScript"
+  | "JavaScript"
+  | "Java"
+  | "Go"
+  | "Python"
+  | "C#"
+  | "Rust"
+  | "Other";
 
 export interface Repository {
-    id: RepositoryId;
-    name: string;
-    ownerTeamId: TeamId;
+  id: RepositoryId;
+  name: string;
+  ownerTeamId: TeamId;
 
-    defaultBranch: string;
+  defaultBranch: string;
 
-    language?: RepositoryLanguage;
-    framework?: string;
+  language?: RepositoryLanguage;
+  framework?: string;
 
-    url?: string;
-    description?: string;
+  url?: string;
+  description?: string;
 
-    status?: EntityStatus;
+  status?: EntityStatus;
 
-    metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 /* ============================================================
@@ -86,35 +82,35 @@ export interface Repository {
  */
 
 export type ServiceType =
-    | "frontend"
-    | "api"
-    | "service"
-    | "worker"
-    | "gateway"
-    | "database"
-    | "queue"
-    | "job"
-    | "other";
+  | "frontend"
+  | "api"
+  | "service"
+  | "worker"
+  | "gateway"
+  | "database"
+  | "queue"
+  | "job"
+  | "other";
 
 export interface Service {
-    id: ServiceId;
-    name: string;
+  id: ServiceId;
+  name: string;
 
-    repositoryId?: RepositoryId;
-    ownerTeamId: TeamId;
+  repositoryId?: RepositoryId;
+  ownerTeamId: TeamId;
 
-    type: ServiceType;
+  type: ServiceType;
 
-    description?: string;
+  description?: string;
 
-    runtime?: string;
-    environment?: string[];
+  runtime?: string;
+  environment?: string[];
 
-    tags?: string[];
+  tags?: string[];
 
-    status?: EntityStatus;
+  status?: EntityStatus;
 
-    metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 /* ============================================================
@@ -123,28 +119,28 @@ export interface Service {
  */
 
 export type DependencyProtocol =
-    | "HTTP"
-    | "HTTPS"
-    | "gRPC"
-    | "Kafka"
-    | "WebSocket"
-    | "TCP"
-    | "Database"
-    | "Internal"
-    | string;
+  | "HTTP"
+  | "HTTPS"
+  | "gRPC"
+  | "Kafka"
+  | "WebSocket"
+  | "TCP"
+  | "Database"
+  | "Internal"
+  | string;
 
 export interface ServiceDependency {
-    from: ServiceId;
-    to: ServiceId;
+  from: ServiceId;
+  to: ServiceId;
 
-    protocol: DependencyProtocol;
+  protocol: DependencyProtocol;
 
-    topic?: string;
-    endpoint?: string;
+  topic?: string;
+  endpoint?: string;
 
-    description?: string;
+  description?: string;
 
-    metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 /* ============================================================
@@ -153,56 +149,49 @@ export interface ServiceDependency {
  */
 
 export type WorkItemType =
-    | "Epic"
-    | "Feature"
-    | "Story"
-    | "Task"
-    | "Bug"
-    | "Spike"
-    | "Issue"
-    | "Other";
+  "Epic" | "Feature" | "Story" | "Task" | "Bug" | "Spike" | "Issue" | "Other";
 
 export type WorkItemState =
-    | "Proposed"
-    | "New"
-    | "Active"
-    | "Blocked"
-    | "Investigating"
-    | "Resolved"
-    | "Done"
-    | "Closed"
-    | string;
+  | "Proposed"
+  | "New"
+  | "Active"
+  | "Blocked"
+  | "Investigating"
+  | "Resolved"
+  | "Done"
+  | "Closed"
+  | string;
 
 export interface WorkItem {
-    id: WorkItemId;
+  id: WorkItemId;
 
-    type: WorkItemType;
-    title: string;
-    state: WorkItemState;
+  type: WorkItemType;
+  title: string;
+  state: WorkItemState;
 
-    description?: string;
+  description?: string;
 
-    parentId?: WorkItemId;
+  parentId?: WorkItemId;
 
-    ownerTeamId?: TeamId;
-    assignee?: string;
+  ownerTeamId?: TeamId;
+  assignee?: string;
 
-    tags?: string[];
+  tags?: string[];
 
-    relatedServiceIds?: ServiceId[];
-    relatedRepositoryIds?: RepositoryId[];
-    relatedWorkItemIds?: WorkItemId[];
+  relatedServiceIds?: ServiceId[];
+  relatedRepositoryIds?: RepositoryId[];
+  relatedWorkItemIds?: WorkItemId[];
 
-    conflictsWith?: WorkItemId[];
-    dependsOn?: WorkItemId[];
-    blocks?: WorkItemId[];
+  conflictsWith?: WorkItemId[];
+  dependsOn?: WorkItemId[];
+  blocks?: WorkItemId[];
 
-    acceptanceCriteria?: string[];
+  acceptanceCriteria?: string[];
 
-    createdAt?: ISODateString;
-    updatedAt?: ISODateString;
+  createdAt?: ISODateString;
+  updatedAt?: ISODateString;
 
-    metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 /* ============================================================
@@ -211,25 +200,25 @@ export interface WorkItem {
  */
 
 export interface Commit {
-    sha: CommitSha;
+  sha: CommitSha;
 
-    repositoryId: RepositoryId;
+  repositoryId: RepositoryId;
 
-    message: string;
-    author: string;
+  message: string;
+  author: string;
 
-    timestamp: ISODateString;
+  timestamp: ISODateString;
 
-    workItemIds?: WorkItemId[];
+  workItemIds?: WorkItemId[];
 
-    changedFiles?: string[];
+  changedFiles?: string[];
 
-    additions?: number;
-    deletions?: number;
+  additions?: number;
+  deletions?: number;
 
-    parentShas?: CommitSha[];
+  parentShas?: CommitSha[];
 
-    metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 /* ============================================================
@@ -238,15 +227,15 @@ export interface Commit {
  */
 
 export interface SourceSnapshot {
-    repositoryId: RepositoryId;
-    commitSha: CommitSha;
+  repositoryId: RepositoryId;
+  commitSha: CommitSha;
 
-    path: string;
-    content: string;
+  path: string;
+  content: string;
 
-    language?: RepositoryLanguage | string;
+  language?: RepositoryLanguage | string;
 
-    metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 /* ============================================================
@@ -255,45 +244,45 @@ export interface SourceSnapshot {
  */
 
 export type DeploymentEnvironment =
-    | "local"
-    | "dev"
-    | "development"
-    | "qa"
-    | "uat"
-    | "staging"
-    | "production"
-    | "prod"
-    | string;
+  | "local"
+  | "dev"
+  | "development"
+  | "qa"
+  | "uat"
+  | "staging"
+  | "production"
+  | "prod"
+  | string;
 
 export type DeploymentStatus =
-    | "Queued"
-    | "Running"
-    | "Succeeded"
-    | "Failed"
-    | "RolledBack"
-    | "Cancelled"
-    | string;
+  | "Queued"
+  | "Running"
+  | "Succeeded"
+  | "Failed"
+  | "RolledBack"
+  | "Cancelled"
+  | string;
 
 export interface Deployment {
-    id: DeploymentId;
+  id: DeploymentId;
 
-    serviceId: ServiceId;
+  serviceId: ServiceId;
 
-    environment: DeploymentEnvironment;
+  environment: DeploymentEnvironment;
 
-    version?: string;
+  version?: string;
 
-    commitShas: CommitSha[];
+  commitShas: CommitSha[];
 
-    status: DeploymentStatus;
+  status: DeploymentStatus;
 
-    deployedAt: ISODateString;
+  deployedAt: ISODateString;
 
-    completedAt?: ISODateString;
+  completedAt?: ISODateString;
 
-    triggeredBy?: string;
+  triggeredBy?: string;
 
-    metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 /* ============================================================
@@ -301,47 +290,42 @@ export interface Deployment {
  * ============================================================
  */
 
-export type IncidentSeverity =
-    | "SEV1"
-    | "SEV2"
-    | "SEV3"
-    | "SEV4"
-    | "Unknown";
+export type IncidentSeverity = "SEV1" | "SEV2" | "SEV3" | "SEV4" | "Unknown";
 
 export type IncidentStatus =
-    | "Detected"
-    | "Investigating"
-    | "Mitigating"
-    | "Monitoring"
-    | "Resolved"
-    | "Closed"
-    | string;
+  | "Detected"
+  | "Investigating"
+  | "Mitigating"
+  | "Monitoring"
+  | "Resolved"
+  | "Closed"
+  | string;
 
 export interface Incident {
-    id: IncidentId;
+  id: IncidentId;
 
-    title: string;
+  title: string;
 
-    description?: string;
+  description?: string;
 
-    severity: IncidentSeverity;
-    status: IncidentStatus;
+  severity: IncidentSeverity;
+  status: IncidentStatus;
 
-    startedAt: ISODateString;
+  startedAt: ISODateString;
 
-    resolvedAt?: ISODateString;
+  resolvedAt?: ISODateString;
 
-    affectedServiceIds: ServiceId[];
+  affectedServiceIds: ServiceId[];
 
-    traceIds?: TraceId[];
+  traceIds?: TraceId[];
 
-    correlatedDeploymentIds?: DeploymentId[];
+  correlatedDeploymentIds?: DeploymentId[];
 
-    workItemIds?: WorkItemId[];
+  workItemIds?: WorkItemId[];
 
-    tags?: string[];
+  tags?: string[];
 
-    metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 /* ============================================================
@@ -349,44 +333,40 @@ export interface Incident {
  * ============================================================
  */
 
-export type TraceStatus =
-    | "ok"
-    | "error"
-    | "unset"
-    | string;
+export type TraceStatus = "ok" | "error" | "unset" | string;
 
 export interface Trace {
-    id: TraceId;
+  id: TraceId;
 
-    name: string;
+  name: string;
 
-    startedAt: ISODateString;
+  startedAt: ISODateString;
 
-    durationMs: number;
+  durationMs: number;
 
-    status: TraceStatus;
+  status: TraceStatus;
 
-    spans: TraceSpan[];
+  spans: TraceSpan[];
 
-    attributes?: Record<string, unknown>;
+  attributes?: Record<string, unknown>;
 }
 
 export interface TraceSpan {
-    id: SpanId;
+  id: SpanId;
 
-    parentSpanId?: SpanId;
+  parentSpanId?: SpanId;
 
-    serviceId: ServiceId;
+  serviceId: ServiceId;
 
-    operation: string;
+  operation: string;
 
-    durationMs: number;
+  durationMs: number;
 
-    status: TraceStatus;
+  status: TraceStatus;
 
-    startedAt?: ISODateString;
+  startedAt?: ISODateString;
 
-    attributes?: Record<string, unknown>;
+  attributes?: Record<string, unknown>;
 }
 
 /* ============================================================
@@ -394,29 +374,23 @@ export interface TraceSpan {
  * ============================================================
  */
 
-export type LogLevel =
-    | "trace"
-    | "debug"
-    | "info"
-    | "warn"
-    | "error"
-    | "fatal";
+export type LogLevel = "trace" | "debug" | "info" | "warn" | "error" | "fatal";
 
 export interface LogEntry {
-    id: LogId;
+  id: LogId;
 
-    timestamp: ISODateString;
+  timestamp: ISODateString;
 
-    serviceId: ServiceId;
+  serviceId: ServiceId;
 
-    level: LogLevel;
+  level: LogLevel;
 
-    message: string;
+  message: string;
 
-    traceId?: TraceId;
-    spanId?: SpanId;
+  traceId?: TraceId;
+  spanId?: SpanId;
 
-    metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 /* ============================================================
@@ -425,35 +399,35 @@ export interface LogEntry {
  */
 
 export interface MetricPoint {
-    timestamp: ISODateString;
-    value: number;
+  timestamp: ISODateString;
+  value: number;
 }
 
 export interface MetricSeries {
-    id?: EntityId;
+  id?: EntityId;
 
-    serviceId: ServiceId;
+  serviceId: ServiceId;
 
-    metric: string;
+  metric: string;
 
-    unit?: string;
+  unit?: string;
 
-    points: MetricPoint[];
+  points: MetricPoint[];
 
-    metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface MetricComparison {
-    serviceId: ServiceId;
+  serviceId: ServiceId;
 
-    metric: string;
+  metric: string;
 
-    before: number;
-    after: number;
+  before: number;
+  after: number;
 
-    unit?: string;
+  unit?: string;
 
-    metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 /* ============================================================
@@ -462,37 +436,33 @@ export interface MetricComparison {
  */
 
 export type ArchitectureDecisionStatus =
-    | "Proposed"
-    | "Accepted"
-    | "Rejected"
-    | "Deprecated"
-    | "Superseded";
+  "Proposed" | "Accepted" | "Rejected" | "Deprecated" | "Superseded";
 
 export interface ArchitectureDecision {
-    id: ArchitectureDecisionId;
+  id: ArchitectureDecisionId;
 
-    title: string;
+  title: string;
 
-    status: ArchitectureDecisionStatus;
+  status: ArchitectureDecisionStatus;
 
-    summary: string;
+  summary: string;
 
-    context?: string;
-    decision?: string;
-    consequences?: string[];
+  context?: string;
+  decision?: string;
+  consequences?: string[];
 
-    relatedServiceIds?: ServiceId[];
+  relatedServiceIds?: ServiceId[];
 
-    relatedRepositoryIds?: RepositoryId[];
+  relatedRepositoryIds?: RepositoryId[];
 
-    relatedWorkItemIds?: WorkItemId[];
+  relatedWorkItemIds?: WorkItemId[];
 
-    supersedes?: ArchitectureDecisionId;
-    supersededBy?: ArchitectureDecisionId;
+  supersedes?: ArchitectureDecisionId;
+  supersededBy?: ArchitectureDecisionId;
 
-    createdAt?: ISODateString;
+  createdAt?: ISODateString;
 
-    metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 /* ============================================================
@@ -501,50 +471,50 @@ export interface ArchitectureDecision {
  */
 
 export type OrgBrainEntityType =
-    | "organization"
-    | "team"
-    | "repository"
-    | "service"
-    | "work-item"
-    | "commit"
-    | "deployment"
-    | "incident"
-    | "trace"
-    | "architecture-decision";
+  | "organization"
+  | "team"
+  | "repository"
+  | "service"
+  | "work-item"
+  | "commit"
+  | "deployment"
+  | "incident"
+  | "trace"
+  | "architecture-decision";
 
 export interface OrgBrainEntityReference {
-    type: OrgBrainEntityType;
-    id: EntityId;
+  type: OrgBrainEntityType;
+  id: EntityId;
 }
 
 export type OrgBrainRelationshipType =
-    | "owns"
-    | "implements"
-    | "depends-on"
-    | "calls"
-    | "touches"
-    | "deployed-by"
-    | "contains"
-    | "implemented-by"
-    | "affects"
-    | "correlated-with"
-    | "related-to"
-    | "conflicts-with"
-    | "resolved-by"
-    | "supersedes"
-    | string;
+  | "owns"
+  | "implements"
+  | "depends-on"
+  | "calls"
+  | "touches"
+  | "deployed-by"
+  | "contains"
+  | "implemented-by"
+  | "affects"
+  | "correlated-with"
+  | "related-to"
+  | "conflicts-with"
+  | "resolved-by"
+  | "supersedes"
+  | string;
 
 export interface OrgBrainRelationship {
-    id?: EntityId;
+  id?: EntityId;
 
-    from: OrgBrainEntityReference;
-    to: OrgBrainEntityReference;
+  from: OrgBrainEntityReference;
+  to: OrgBrainEntityReference;
 
-    type: OrgBrainRelationshipType;
+  type: OrgBrainRelationshipType;
 
-    label?: string;
+  label?: string;
 
-    metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 /* ============================================================
@@ -553,39 +523,39 @@ export interface OrgBrainRelationship {
  */
 
 export interface OrgBrainData {
-    organization: Organization;
+  organization: Organization;
 
-    teams: Team[];
+  teams: Team[];
 
-    repositories: Repository[];
+  repositories: Repository[];
 
-    services: Service[];
+  services: Service[];
 
-    serviceDependencies: ServiceDependency[];
+  serviceDependencies: ServiceDependency[];
 
-    workItems: WorkItem[];
+  workItems: WorkItem[];
 
-    commits: Commit[];
+  commits: Commit[];
 
-    sourceSnapshots: SourceSnapshot[];
+  sourceSnapshots: SourceSnapshot[];
 
-    deployments: Deployment[];
+  deployments: Deployment[];
 
-    incidents: Incident[];
+  incidents: Incident[];
 
-    traces: Trace[];
+  traces: Trace[];
 
-    logs: LogEntry[];
+  logs: LogEntry[];
 
-    /**
-     * Keep this as MetricComparison for the initial seed.
-     * Later, production observability can move to MetricSeries.
-     */
-    metrics: MetricComparison[];
+  /**
+   * Keep this as MetricComparison for the initial seed.
+   * Later, production observability can move to MetricSeries.
+   */
+  metrics: MetricComparison[];
 
-    architectureDecisions: ArchitectureDecision[];
+  architectureDecisions: ArchitectureDecision[];
 
-    relationships?: OrgBrainRelationship[];
+  relationships?: OrgBrainRelationship[];
 }
 
 /* ============================================================
@@ -594,58 +564,58 @@ export interface OrgBrainData {
  */
 
 export interface ServiceContext {
-    service: Service;
+  service: Service;
 
-    team?: Team;
+  team?: Team;
 
-    repository?: Repository;
+  repository?: Repository;
 
-    upstreamServices: Service[];
-    downstreamServices: Service[];
+  upstreamServices: Service[];
+  downstreamServices: Service[];
 
-    deployments: Deployment[];
+  deployments: Deployment[];
 
-    workItems: WorkItem[];
+  workItems: WorkItem[];
 
-    incidents: Incident[];
+  incidents: Incident[];
 }
 
 export interface WorkItemContext {
-    workItem: WorkItem;
+  workItem: WorkItem;
 
-    parent?: WorkItem;
+  parent?: WorkItem;
 
-    children: WorkItem[];
+  children: WorkItem[];
 
-    conflicts: WorkItem[];
+  conflicts: WorkItem[];
 
-    dependencies: WorkItem[];
+  dependencies: WorkItem[];
 
-    services: Service[];
+  services: Service[];
 
-    repositories: Repository[];
+  repositories: Repository[];
 
-    architectureDecisions: ArchitectureDecision[];
+  architectureDecisions: ArchitectureDecision[];
 }
 
 export interface IncidentContext {
-    incident: Incident;
+  incident: Incident;
 
-    services: Service[];
+  services: Service[];
 
-    traces: Trace[];
+  traces: Trace[];
 
-    deployments: Deployment[];
+  deployments: Deployment[];
 
-    commits: Commit[];
+  commits: Commit[];
 
-    logs: LogEntry[];
+  logs: LogEntry[];
 
-    metrics: MetricComparison[];
+  metrics: MetricComparison[];
 
-    workItems: WorkItem[];
+  workItems: WorkItem[];
 
-    architectureDecisions: ArchitectureDecision[];
+  architectureDecisions: ArchitectureDecision[];
 }
 
 /* ============================================================
@@ -654,59 +624,59 @@ export interface IncidentContext {
  */
 
 export type OrgBrainIntent =
-    | "general-query"
-    | "work-planning"
-    | "impact-analysis"
-    | "incident-investigation"
-    | "root-cause-analysis"
-    | "work-item-generation"
-    | "service-analysis";
+  | "general-query"
+  | "work-planning"
+  | "impact-analysis"
+  | "incident-investigation"
+  | "root-cause-analysis"
+  | "work-item-generation"
+  | "service-analysis";
 
 export interface OrgBrainQuery {
-    query: string;
+  query: string;
 
-    intent?: OrgBrainIntent;
+  intent?: OrgBrainIntent;
 
-    context?: OrgBrainEntityReference[];
+  context?: OrgBrainEntityReference[];
 
-    conversationId?: string;
+  conversationId?: string;
 }
 
 export interface AgentEvidence {
-    id: EntityId;
+  id: EntityId;
 
-    type:
-        | "work-item"
-        | "service"
-        | "trace"
-        | "span"
-        | "log"
-        | "metric"
-        | "deployment"
-        | "commit"
-        | "source"
-        | "architecture-decision";
+  type:
+    | "work-item"
+    | "service"
+    | "trace"
+    | "span"
+    | "log"
+    | "metric"
+    | "deployment"
+    | "commit"
+    | "source"
+    | "architecture-decision";
 
-    referenceId: EntityId;
+  referenceId: EntityId;
 
-    summary: string;
+  summary: string;
 
-    relevance?: number;
+  relevance?: number;
 }
 
 export interface AgentFinding {
-    id: EntityId;
+  id: EntityId;
 
-    title: string;
-    description: string;
+  title: string;
+  description: string;
 
-    confidence?: number;
+  confidence?: number;
 
-    evidence: AgentEvidence[];
+  evidence: AgentEvidence[];
 
-    contradictions?: AgentEvidence[];
+  contradictions?: AgentEvidence[];
 
-    relatedEntities?: OrgBrainEntityReference[];
+  relatedEntities?: OrgBrainEntityReference[];
 }
 
 /* ============================================================
@@ -715,31 +685,31 @@ export interface AgentFinding {
  */
 
 export interface RootCauseAnalysis {
-    incidentId: IncidentId;
+  incidentId: IncidentId;
 
-    summary: string;
+  summary: string;
 
-    rootCause: string;
+  rootCause: string;
 
-    confidence: number;
+  confidence: number;
 
-    evidence: AgentEvidence[];
+  evidence: AgentEvidence[];
 
-    evidenceAgainst?: AgentEvidence[];
+  evidenceAgainst?: AgentEvidence[];
 
-    affectedServiceIds: ServiceId[];
+  affectedServiceIds: ServiceId[];
 
-    deploymentIds?: DeploymentId[];
+  deploymentIds?: DeploymentId[];
 
-    commitShas?: CommitSha[];
+  commitShas?: CommitSha[];
 
-    workItemIds?: WorkItemId[];
+  workItemIds?: WorkItemId[];
 
-    mitigation?: string;
+  mitigation?: string;
 
-    followUpWork?: WorkItemDraft[];
+  followUpWork?: WorkItemDraft[];
 
-    generatedAt: ISODateString;
+  generatedAt: ISODateString;
 }
 
 /* ============================================================
@@ -748,23 +718,23 @@ export interface RootCauseAnalysis {
  */
 
 export interface WorkItemDraft {
-    type: WorkItemType;
+  type: WorkItemType;
 
-    title: string;
+  title: string;
 
-    description: string;
+  description: string;
 
-    parentId?: WorkItemId;
+  parentId?: WorkItemId;
 
-    tags?: string[];
+  tags?: string[];
 
-    relatedServiceIds?: ServiceId[];
+  relatedServiceIds?: ServiceId[];
 
-    acceptanceCriteria?: string[];
+  acceptanceCriteria?: string[];
 
-    rationale?: string;
+  rationale?: string;
 
-    sourceReferences?: OrgBrainEntityReference[];
+  sourceReferences?: OrgBrainEntityReference[];
 }
 
 /* ============================================================
@@ -773,77 +743,70 @@ export interface WorkItemDraft {
  */
 
 export interface WorkItemProvider {
-    list(): Promise<WorkItem[]>;
+  list(): Promise<WorkItem[]>;
 
-    getById(id: WorkItemId): Promise<WorkItem | null>;
+  getById(id: WorkItemId): Promise<WorkItem | null>;
 
-    search(query: string): Promise<WorkItem[]>;
+  search(query: string): Promise<WorkItem[]>;
 
-    getRelated(id: WorkItemId): Promise<WorkItem[]>;
+  getRelated(id: WorkItemId): Promise<WorkItem[]>;
 
-    createDraft(input: WorkItemDraft): Promise<WorkItemDraft>;
+  createDraft(input: WorkItemDraft): Promise<WorkItemDraft>;
 }
 
 export interface RepositoryProvider {
-    list(): Promise<Repository[]>;
+  list(): Promise<Repository[]>;
 
-    getById(id: RepositoryId): Promise<Repository | null>;
+  getById(id: RepositoryId): Promise<Repository | null>;
 
-    getCommit(
-        repositoryId: RepositoryId,
-        sha: CommitSha,
-    ): Promise<Commit | null>;
+  getCommit(repositoryId: RepositoryId, sha: CommitSha): Promise<Commit | null>;
 
-    getSourceSnapshot(
-        repositoryId: RepositoryId,
-        sha: CommitSha,
-        path: string,
-    ): Promise<SourceSnapshot | null>;
+  getSourceSnapshot(
+    repositoryId: RepositoryId,
+    sha: CommitSha,
+    path: string,
+  ): Promise<SourceSnapshot | null>;
 }
 
 export interface ServiceCatalogProvider {
-    list(): Promise<Service[]>;
+  list(): Promise<Service[]>;
 
-    getById(id: ServiceId): Promise<Service | null>;
+  getById(id: ServiceId): Promise<Service | null>;
 
-    getDependencies(id: ServiceId): Promise<ServiceDependency[]>;
+  getDependencies(id: ServiceId): Promise<ServiceDependency[]>;
 }
 
 export interface DeploymentProvider {
-    getById(id: DeploymentId): Promise<Deployment | null>;
+  getById(id: DeploymentId): Promise<Deployment | null>;
 
-    getForService(serviceId: ServiceId): Promise<Deployment[]>;
+  getForService(serviceId: ServiceId): Promise<Deployment[]>;
 
-    getAroundTime(
-        serviceId: ServiceId,
-        timestamp: ISODateString,
-    ): Promise<Deployment[]>;
+  getAroundTime(
+    serviceId: ServiceId,
+    timestamp: ISODateString,
+  ): Promise<Deployment[]>;
 }
 
 export interface ObservabilityProvider {
-    getTrace(id: TraceId): Promise<Trace | null>;
+  getTrace(id: TraceId): Promise<Trace | null>;
 
-    getLogsByTrace(id: TraceId): Promise<LogEntry[]>;
+  getLogsByTrace(id: TraceId): Promise<LogEntry[]>;
 
-    getLogsByService(
-        serviceId: ServiceId,
-        options?: {
-            from?: ISODateString;
-            to?: ISODateString;
-        },
-    ): Promise<LogEntry[]>;
+  getLogsByService(
+    serviceId: ServiceId,
+    options?: {
+      from?: ISODateString;
+      to?: ISODateString;
+    },
+  ): Promise<LogEntry[]>;
 
-    getMetrics(serviceId: ServiceId): Promise<MetricComparison[]>;
+  getMetrics(serviceId: ServiceId): Promise<MetricComparison[]>;
 }
 
 export interface ArchitectureProvider {
-    list(): Promise<ArchitectureDecision[]>;
+  list(): Promise<ArchitectureDecision[]>;
 
-    getById(
-        id: ArchitectureDecisionId,
-    ): Promise<ArchitectureDecision | null>;
+  getById(id: ArchitectureDecisionId): Promise<ArchitectureDecision | null>;
 
-    getForService(
-        serviceId: ServiceId,
-    ): Promise<ArchitectureDecision[]>;
+  getForService(serviceId: ServiceId): Promise<ArchitectureDecision[]>;
 }

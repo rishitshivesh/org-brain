@@ -96,8 +96,7 @@ export type BashToolProps = {
 
 export const BashTool = memo(function BashTool({ part }: BashToolProps) {
   const approval = (part.input?.approval ?? part.args?.approval) as
-    | ToolApproval
-    | undefined;
+    ToolApproval | undefined;
   const step = mapToolInvocationToStep(part.toolCallId ?? part.id ?? "bash", {
     toolName: "Bash",
     args: part.input ?? part.args ?? {},

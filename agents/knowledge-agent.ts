@@ -15,12 +15,19 @@ const workItemPattern = /ADO-\d+/i;
 const incidentPattern = /INC-\d+/i;
 const adrPattern = /ADR-\d+/i;
 
-function findNamedService(services: Service[], query: string): Service | undefined {
+function findNamedService(
+  services: Service[],
+  query: string,
+): Service | undefined {
   const normalized = query.toLowerCase();
-  return services.find((service) => normalized.includes(service.name.toLowerCase()));
+  return services.find((service) =>
+    normalized.includes(service.name.toLowerCase()),
+  );
 }
 
-function uniqueDecisions(items: ArchitectureDecision[]): ArchitectureDecision[] {
+function uniqueDecisions(
+  items: ArchitectureDecision[],
+): ArchitectureDecision[] {
   return [...new Map(items.map((item) => [item.id, item])).values()];
 }
 
@@ -29,7 +36,12 @@ function workTerms(workItem: WorkItem): string[] {
     .toLowerCase()
     .split(/[^a-z0-9]+/)
     .filter((term) => term.length >= 5);
-  return [...new Set([...(workItem.tags ?? []).map((tag) => tag.toLowerCase()), ...titleTerms])];
+  return [
+    ...new Set([
+      ...(workItem.tags ?? []).map((tag) => tag.toLowerCase()),
+      ...titleTerms,
+    ]),
+  ];
 }
 
 function relevantToWork(
@@ -41,7 +53,8 @@ function relevantToWork(
     decision.relatedWorkItemIds?.includes(workItem.id),
   );
   const semantic = decisions.filter((decision) => {
-    const haystack = `${decision.title} ${decision.summary} ${decision.context ?? ""} ${decision.decision ?? ""}`.toLowerCase();
+    const haystack =
+      `${decision.title} ${decision.summary} ${decision.context ?? ""} ${decision.decision ?? ""}`.toLowerCase();
     return terms.some((term) => haystack.includes(term));
   });
 
@@ -68,7 +81,10 @@ export async function runKnowledgeAgent(
   if (decisions.length === 0 && workItemId) {
     const context = await buildWorkPlanningContext(providers, workItemId);
     if (context) {
-      decisions = relevantToWork(context.architectureDecisions, context.workItem);
+      decisions = relevantToWork(
+        context.architectureDecisions,
+        context.workItem,
+      );
       scope = context.workItem.id;
     }
   }
@@ -102,7 +118,9 @@ export async function runKnowledgeAgent(
   decisions = uniqueDecisions(decisions);
   if (decisions.length === 0) return null;
 
-  const accepted = decisions.filter((decision) => decision.status === "Accepted");
+  const accepted = decisions.filter(
+    (decision) => decision.status === "Accepted",
+  );
   const constraints = accepted.map(
     (decision) => `${decision.id} · ${decision.title}: ${decision.summary}`,
   );

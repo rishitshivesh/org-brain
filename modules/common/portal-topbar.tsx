@@ -32,9 +32,12 @@ export function PortalTopbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const route = Object.entries(routeLabels)
-    .sort(([a], [b]) => b.length - a.length)
-    .find(([href]) => (href === "/" ? pathname === "/" : pathname.startsWith(href)))?.[1] ?? "Workspace";
+  const route =
+    Object.entries(routeLabels)
+      .sort(([a], [b]) => b.length - a.length)
+      .find(([href]) =>
+        href === "/" ? pathname === "/" : pathname.startsWith(href),
+      )?.[1] ?? "Workspace";
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -97,7 +100,8 @@ export function PortalTopbar() {
                 >
                   <Icon className="text-muted-foreground" />
                   <span>{label}</span>
-                  {pathname === href || (href !== "/" && pathname.startsWith(href)) ? (
+                  {pathname === href ||
+                  (href !== "/" && pathname.startsWith(href)) ? (
                     <CommandShortcut>Current</CommandShortcut>
                   ) : null}
                 </CommandItem>

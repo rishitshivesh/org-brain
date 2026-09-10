@@ -11,9 +11,14 @@ import type { SpecialistAgentResult } from "./types";
 const workItemPattern = /ADO-\d+/i;
 const incidentPattern = /INC-\d+/i;
 
-function findNamedService(services: Service[], query: string): Service | undefined {
+function findNamedService(
+  services: Service[],
+  query: string,
+): Service | undefined {
   const normalized = query.toLowerCase();
-  return services.find((service) => normalized.includes(service.name.toLowerCase()));
+  return services.find((service) =>
+    normalized.includes(service.name.toLowerCase()),
+  );
 }
 
 async function resolveStartingServices(
@@ -65,7 +70,10 @@ async function collectReachable(
 
         const targetId =
           direction === "downstream" ? dependency.to : dependency.from;
-        edges.set(`${dependency.from}:${dependency.to}:${dependency.protocol}`, dependency);
+        edges.set(
+          `${dependency.from}:${dependency.to}:${dependency.protocol}`,
+          dependency,
+        );
 
         if (visited.has(targetId)) continue;
         visited.add(targetId);
@@ -112,7 +120,8 @@ export async function runDependencyAgent(
         description: `${blastRadius.length} downstream and ${upstreamNames.length} upstream services are reachable within three hops.`,
         confidence: 100,
         evidence: allEdges.map(
-          (edge) => `${edge.from} → ${edge.to} via ${edge.protocol}${edge.topic ? ` (${edge.topic})` : ""}`,
+          (edge) =>
+            `${edge.from} → ${edge.to} via ${edge.protocol}${edge.topic ? ` (${edge.topic})` : ""}`,
         ),
       },
     ],
@@ -120,7 +129,10 @@ export async function runDependencyAgent(
       {
         id: `dependency-graph-${startingServices[0].id}`,
         name: "resolve_dependency_graph",
-        input: { serviceIds: startingServices.map((service) => service.id), maxDepth: 3 },
+        input: {
+          serviceIds: startingServices.map((service) => service.id),
+          maxDepth: 3,
+        },
         output: {
           upstream: upstreamNames,
           downstream: blastRadius,

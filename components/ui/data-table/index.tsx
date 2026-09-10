@@ -35,8 +35,13 @@ export function DataTable<TData extends RowData>({
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id} className="hover:bg-transparent">
               {headerGroup.headers.map((header) => (
-                <TableHead key={header.id} className="h-10 whitespace-nowrap text-xs">
-                  {header.isPlaceholder ? null : <table.FlexRender header={header} />}
+                <TableHead
+                  key={header.id}
+                  className="h-10 whitespace-nowrap text-xs"
+                >
+                  {header.isPlaceholder ? null : (
+                    <table.FlexRender header={header} />
+                  )}
                 </TableHead>
               ))}
             </TableRow>
@@ -59,7 +64,10 @@ export function DataTable<TData extends RowData>({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
+              <TableCell
+                colSpan={columns.length}
+                className="h-32 text-center text-muted-foreground"
+              >
                 No results.
               </TableCell>
             </TableRow>

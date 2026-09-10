@@ -1,11 +1,11 @@
-import type { ApprovalAction, ApprovalRecord, OrchestrationResult } from "../agents";
+import type {
+  ApprovalAction,
+  ApprovalRecord,
+  OrchestrationResult,
+} from "../agents";
 
 export type InvestigationStatus =
-  | "queued"
-  | "running"
-  | "waiting-approval"
-  | "completed"
-  | "failed";
+  "queued" | "running" | "waiting-approval" | "completed" | "failed";
 
 export interface InvestigationAiMetadata {
   model: string;

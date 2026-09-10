@@ -1,11 +1,7 @@
 import type { OrgBrainIntent, WorkItemDraft } from "@/types/org-brain";
 
 export type SpecialistAgentId =
-  | "work"
-  | "observability"
-  | "change"
-  | "dependency"
-  | "knowledge";
+  "work" | "observability" | "change" | "dependency" | "knowledge";
 
 export interface AgentToolEvent {
   id: string;

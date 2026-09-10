@@ -125,9 +125,7 @@ export const UserMessage = memo(function UserMessage({
               "max-w-[200px] p-1.5 bg-an-foreground/4 rounded-an-message",
               enableImagePreview && "cursor-pointer",
             )}
-            onClick={
-              enableImagePreview ? () => setLightboxIndex(i) : undefined
-            }
+            onClick={enableImagePreview ? () => setLightboxIndex(i) : undefined}
           >
             <img
               src={url}

@@ -256,8 +256,7 @@ export const EditTool = memo(function EditTool({
   isCollapsible = false,
 }: EditToolProps) {
   const approval = (part.input?.approval ?? part.args?.approval) as
-    | ToolApproval
-    | undefined;
+    ToolApproval | undefined;
   const toolName = (part.type as string)?.replace("tool-", "") || "Edit";
   const step = mapToolInvocationToStep(part.toolCallId ?? part.id ?? "edit", {
     toolName,

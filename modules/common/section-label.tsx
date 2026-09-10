@@ -12,7 +12,9 @@ export function SectionLabel({
       <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
         {children}
       </p>
-      {aside ? <div className="text-xs text-muted-foreground">{aside}</div> : null}
+      {aside ? (
+        <div className="text-xs text-muted-foreground">{aside}</div>
+      ) : null}
     </div>
   );
 }

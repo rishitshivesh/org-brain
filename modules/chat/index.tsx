@@ -47,12 +47,14 @@ const promptSuggestions = [
   {
     id: "incident",
     label: "Investigate claims latency",
-    value: "Why did claims submission latency increase after the latest deployment?",
+    value:
+      "Why did claims submission latency increase after the latest deployment?",
   },
   {
     id: "dependency",
     label: "Map claims-worker blast radius",
-    value: "What depends on claims-worker and what is its downstream blast radius?",
+    value:
+      "What depends on claims-worker and what is its downstream blast radius?",
   },
   {
     id: "knowledge",
@@ -88,12 +90,14 @@ function approvalQuestion(result: OrchestrationResult, durable: boolean) {
             {
               id: "approve-both",
               label: "Mitigation + remediation",
-              description: "Approve the mitigation handoff and remediation work draft.",
+              description:
+                "Approve the mitigation handoff and remediation work draft.",
             },
             {
               id: "approve-mitigation",
               label: "Mitigation only",
-              description: "Approve the mitigation handoff and keep remediation as draft.",
+              description:
+                "Approve the mitigation handoff and keep remediation as draft.",
             },
             {
               id: "approve-remediation",
@@ -103,7 +107,8 @@ function approvalQuestion(result: OrchestrationResult, durable: boolean) {
             {
               id: "keep-drafts",
               label: "Keep both as drafts",
-              description: "Resume without approval and leave both actions unchanged.",
+              description:
+                "Resume without approval and leave both actions unchanged.",
             },
           ],
         },
@@ -193,11 +198,22 @@ function resolveQuestion(
   return messages.map((message) => ({
     ...message,
     parts: message.parts?.map((part) => {
-      const candidate = part as { type?: string; toolCallId?: string; output?: unknown };
-      if (candidate.type !== "tool-Question" || candidate.toolCallId !== toolCallId) {
+      const candidate = part as {
+        type?: string;
+        toolCallId?: string;
+        output?: unknown;
+      };
+      if (
+        candidate.type !== "tool-Question" ||
+        candidate.toolCallId !== toolCallId
+      ) {
         return part;
       }
-      return { ...candidate, state: "output-available", output: { answer } } as typeof part;
+      return {
+        ...candidate,
+        state: "output-available",
+        output: { answer },
+      } as typeof part;
     }),
   }));
 }
@@ -210,7 +226,9 @@ export function ChatExample() {
   const [activeAgents, setActiveAgents] = useState<string[]>([]);
   const [lastRun, setLastRun] = useState<OrchestrationResult | null>(null);
   const [lastApproval, setLastApproval] = useState<ApprovalRecord | null>(null);
-  const [investigation, setInvestigation] = useState<InvestigationState | null>(null);
+  const [investigation, setInvestigation] = useState<InvestigationState | null>(
+    null,
+  );
 
   async function handleSend(input: { role: "user"; content: string }) {
     if (!input.content.trim()) return;
@@ -270,10 +288,15 @@ export function ChatExample() {
       let durableInvestigation: InvestigationState | null = null;
 
       if (cloudflareConfigured && investigation) {
-        durableInvestigation = await approveRemoteInvestigation(investigation.id, actions);
+        durableInvestigation = await approveRemoteInvestigation(
+          investigation.id,
+          actions,
+        );
         setInvestigation(durableInvestigation);
       } else if (actions.includes("remediation")) {
-        await orgBrainProviders.workItems.createDraft(lastRun.rca.remediationDraft);
+        await orgBrainProviders.workItems.createDraft(
+          lastRun.rca.remediationDraft,
+        );
       }
 
       const record: ApprovalRecord = durableInvestigation?.approval ?? {
@@ -347,7 +370,10 @@ export function ChatExample() {
                 Org Brain
               </CardTitle>
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="hidden font-normal sm:inline-flex">
+                <Badge
+                  variant="outline"
+                  className="hidden font-normal sm:inline-flex"
+                >
                   {cloudflareConfigured ? <Cloud className="size-3" /> : null}
                   {cloudflareConfigured ? "Cloudflare" : "Local"}
                 </Badge>
@@ -387,7 +413,8 @@ export function ChatExample() {
               <CardHeader>
                 <div className="flex items-center justify-between gap-3">
                   <CardTitle className="flex items-center gap-2 text-sm">
-                    <Cloud className="size-4 text-muted-foreground" /> Investigation
+                    <Cloud className="size-4 text-muted-foreground" />{" "}
+                    Investigation
                   </CardTitle>
                   <Badge variant="secondary" className="font-normal">
                     {investigation.status.replaceAll("-", " ")}
@@ -399,10 +426,14 @@ export function ChatExample() {
                 {investigation.ai ? (
                   <div className="rounded-lg border bg-background/45 p-2.5">
                     <p className="font-medium text-foreground">
-                      {investigation.ai.used ? "Workers AI synthesis" : "Deterministic fallback"}
+                      {investigation.ai.used
+                        ? "Workers AI synthesis"
+                        : "Deterministic fallback"}
                     </p>
                     <p className="mt-1 truncate">{investigation.ai.model}</p>
-                    <p className="mt-1">Gateway: {investigation.ai.gatewayId}</p>
+                    <p className="mt-1">
+                      Gateway: {investigation.ai.gatewayId}
+                    </p>
                   </div>
                 ) : null}
               </CardContent>
@@ -418,19 +449,25 @@ export function ChatExample() {
                 <span className="flex items-center gap-2 text-muted-foreground">
                   <GitBranch className="size-4" /> Work items
                 </span>
-                <span className="font-medium">{orgBrainData.workItems.length}</span>
+                <span className="font-medium">
+                  {orgBrainData.workItems.length}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-2 text-muted-foreground">
                   <Boxes className="size-4" /> Services
                 </span>
-                <span className="font-medium">{orgBrainData.services.length}</span>
+                <span className="font-medium">
+                  {orgBrainData.services.length}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-2 text-muted-foreground">
                   <Network className="size-4" /> Dependencies
                 </span>
-                <span className="font-medium">{orgBrainData.serviceDependencies.length}</span>
+                <span className="font-medium">
+                  {orgBrainData.serviceDependencies.length}
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -456,7 +493,8 @@ export function ChatExample() {
                 </div>
               ) : (
                 <p className="text-sm leading-6 text-muted-foreground">
-                  No specialist was needed for the last query. The deterministic resolver handled it directly.
+                  No specialist was needed for the last query. The deterministic
+                  resolver handled it directly.
                 </p>
               )}
             </CardContent>
@@ -482,12 +520,18 @@ export function ChatExample() {
                   <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
                     Remediation work
                   </p>
-                  <p className="mt-1 font-medium">{lastRun.rca.remediationDraft.title}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Draft only until approved</p>
+                  <p className="mt-1 font-medium">
+                    {lastRun.rca.remediationDraft.title}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Draft only until approved
+                  </p>
                 </div>
                 {lastApproval ? (
                   <div className="flex items-center justify-between rounded-lg border bg-background/50 px-3 py-2">
-                    <span className="text-xs text-muted-foreground">Approval</span>
+                    <span className="text-xs text-muted-foreground">
+                      Approval
+                    </span>
                     <Badge variant="outline">{lastApproval.status}</Badge>
                   </div>
                 ) : null}

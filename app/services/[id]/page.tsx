@@ -1,4 +1,11 @@
-import { ArrowLeft, Boxes, GitFork, GitPullRequest, Layers3, RadioTower } from "lucide-react";
+import {
+  ArrowLeft,
+  Boxes,
+  GitFork,
+  GitPullRequest,
+  Layers3,
+  RadioTower,
+} from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -16,7 +23,11 @@ import {
   getTeam,
 } from "@/lib/org-brain";
 
-export default async function ServicePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ServicePage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
   const service = getService(id);
   if (!service) notFound();
@@ -35,7 +46,11 @@ export default async function ServicePage({ params }: { params: Promise<{ id: st
         title={service.name}
         description={`${team?.name ?? service.ownerTeamId} owns this service${repository ? ` · ${repository.name}` : ""}.`}
         actions={
-          <Button render={<Link href="/services" />} variant="outline" size="sm">
+          <Button
+            render={<Link href="/services" />}
+            variant="outline"
+            size="sm"
+          >
             <ArrowLeft /> Services
           </Button>
         }
@@ -44,16 +59,30 @@ export default async function ServicePage({ params }: { params: Promise<{ id: st
       <div className="grid gap-5 p-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-5">
           <Card className="shadow-none">
-            <CardHeader><CardTitle className="flex items-center gap-2 text-base"><GitFork className="size-4" /> Dependency edges</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <GitFork className="size-4" /> Dependency edges
+              </CardTitle>
+            </CardHeader>
             <CardContent className="space-y-2">
               {dependencies.map((dependency) => {
                 const outgoing = dependency.from === service.id;
-                const other = getService(outgoing ? dependency.to : dependency.from);
+                const other = getService(
+                  outgoing ? dependency.to : dependency.from,
+                );
                 return (
-                  <div key={`${dependency.from}-${dependency.to}`} className="flex items-center justify-between gap-4 rounded-lg border p-3">
+                  <div
+                    key={`${dependency.from}-${dependency.to}`}
+                    className="flex items-center justify-between gap-4 rounded-lg border p-3"
+                  >
                     <div className="min-w-0">
-                      <p className="text-xs text-muted-foreground">{outgoing ? "Calls" : "Called by"}</p>
-                      <p className="mt-1 truncate text-sm font-medium">{other?.name ?? (outgoing ? dependency.to : dependency.from)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {outgoing ? "Calls" : "Called by"}
+                      </p>
+                      <p className="mt-1 truncate text-sm font-medium">
+                        {other?.name ??
+                          (outgoing ? dependency.to : dependency.from)}
+                      </p>
                     </div>
                     <Badge variant="outline">{dependency.protocol}</Badge>
                   </div>
@@ -63,11 +92,24 @@ export default async function ServicePage({ params }: { params: Promise<{ id: st
           </Card>
 
           <Card className="shadow-none">
-            <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Layers3 className="size-4" /> Related work</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Layers3 className="size-4" /> Related work
+              </CardTitle>
+            </CardHeader>
             <CardContent className="space-y-2">
               {workItems.map((item) => (
-                <Link key={item.id} href={`/work/${item.id}`} className="flex items-start justify-between gap-3 rounded-lg border p-3 hover:bg-muted/40">
-                  <div><p className="font-mono text-xs text-muted-foreground">{item.id}</p><p className="mt-1 text-sm font-medium">{item.title}</p></div>
+                <Link
+                  key={item.id}
+                  href={`/work/${item.id}`}
+                  className="flex items-start justify-between gap-3 rounded-lg border p-3 hover:bg-muted/40"
+                >
+                  <div>
+                    <p className="font-mono text-xs text-muted-foreground">
+                      {item.id}
+                    </p>
+                    <p className="mt-1 text-sm font-medium">{item.title}</p>
+                  </div>
                   <Badge variant="secondary">{item.state}</Badge>
                 </Link>
               ))}
@@ -77,23 +119,46 @@ export default async function ServicePage({ params }: { params: Promise<{ id: st
 
         <div className="space-y-5">
           <Card className="shadow-none">
-            <CardHeader><CardTitle className="flex items-center gap-2 text-base"><GitPullRequest className="size-4" /> Repository</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <GitPullRequest className="size-4" /> Repository
+              </CardTitle>
+            </CardHeader>
             <CardContent>
               {repository ? (
                 <div className="space-y-2">
                   <p className="text-sm font-medium">{repository.name}</p>
-                  <p className="text-xs text-muted-foreground">{repository.language ?? "Unknown"} · {repository.framework ?? "No framework"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {repository.language ?? "Unknown"} ·{" "}
+                    {repository.framework ?? "No framework"}
+                  </p>
                   <Badge variant="outline">{repository.defaultBranch}</Badge>
                 </div>
-              ) : <p className="text-sm text-muted-foreground">No repository linked.</p>}
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No repository linked.
+                </p>
+              )}
             </CardContent>
           </Card>
 
           <Card className="shadow-none">
-            <CardHeader><CardTitle className="flex items-center gap-2 text-base"><RadioTower className="size-4" /> Operational context</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <RadioTower className="size-4" /> Operational context
+              </CardTitle>
+            </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Deployments</span><span className="font-medium">{deployments.length}</span></div>
-              <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Incidents</span><span className="font-medium">{incidents.length}</span></div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  Deployments
+                </span>
+                <span className="font-medium">{deployments.length}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Incidents</span>
+                <span className="font-medium">{incidents.length}</span>
+              </div>
               {incidents.map((incident) => (
                 <Button
                   key={incident.id}

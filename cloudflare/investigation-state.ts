@@ -13,7 +13,9 @@ export class InvestigationStateObject extends DurableObject<Env> {
   async fetch(request: Request): Promise<Response> {
     if (request.method === "GET") {
       const state = await this.ctx.storage.get<InvestigationState>(STATE_KEY);
-      return state ? json(state) : json({ error: "Investigation not found" }, 404);
+      return state
+        ? json(state)
+        : json({ error: "Investigation not found" }, 404);
     }
 
     if (request.method === "PUT") {

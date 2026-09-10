@@ -18,16 +18,23 @@ export const orgBrainData = seed as unknown as OrgBrainData;
 export const byId = <T extends { id: string }>(items: T[], id?: string) =>
   id ? items.find((item) => item.id === id) : undefined;
 
-export const getTeam = (id?: string): Team | undefined => byId(orgBrainData.teams, id);
+export const getTeam = (id?: string): Team | undefined =>
+  byId(orgBrainData.teams, id);
 export const getRepository = (id?: string): Repository | undefined =>
   byId(orgBrainData.repositories, id);
-export const getService = (id?: string): Service | undefined => byId(orgBrainData.services, id);
-export const getWorkItem = (id?: string): WorkItem | undefined => byId(orgBrainData.workItems, id);
+export const getService = (id?: string): Service | undefined =>
+  byId(orgBrainData.services, id);
+export const getWorkItem = (id?: string): WorkItem | undefined =>
+  byId(orgBrainData.workItems, id);
 export const getDeployment = (id?: string): Deployment | undefined =>
   byId(orgBrainData.deployments, id);
-export const getIncident = (id?: string): Incident | undefined => byId(orgBrainData.incidents, id);
-export const getTrace = (id?: string): Trace | undefined => byId(orgBrainData.traces, id);
-export const getArchitectureDecision = (id?: string): ArchitectureDecision | undefined =>
+export const getIncident = (id?: string): Incident | undefined =>
+  byId(orgBrainData.incidents, id);
+export const getTrace = (id?: string): Trace | undefined =>
+  byId(orgBrainData.traces, id);
+export const getArchitectureDecision = (
+  id?: string,
+): ArchitectureDecision | undefined =>
   byId(orgBrainData.architectureDecisions, id);
 
 export const getCommit = (sha?: string): Commit | undefined =>
@@ -35,7 +42,8 @@ export const getCommit = (sha?: string): Commit | undefined =>
 
 export function getServiceDependencies(serviceId: string): ServiceDependency[] {
   return orgBrainData.serviceDependencies.filter(
-    (dependency) => dependency.from === serviceId || dependency.to === serviceId,
+    (dependency) =>
+      dependency.from === serviceId || dependency.to === serviceId,
   );
 }
 
@@ -52,7 +60,9 @@ export function getWorkItemConflicts(workItem: WorkItem): WorkItem[] {
 }
 
 export function getServiceDeployments(serviceId: string): Deployment[] {
-  return orgBrainData.deployments.filter((deployment) => deployment.serviceId === serviceId);
+  return orgBrainData.deployments.filter(
+    (deployment) => deployment.serviceId === serviceId,
+  );
 }
 
 export function getServiceIncidents(serviceId: string): Incident[] {
@@ -86,13 +96,17 @@ export function getDeploymentCommits(deployment: Deployment): Commit[] {
 }
 
 export function getWorkSummary() {
-  const conflicts = orgBrainData.workItems.filter((item) => (item.conflictsWith?.length ?? 0) > 0);
+  const conflicts = orgBrainData.workItems.filter(
+    (item) => (item.conflictsWith?.length ?? 0) > 0,
+  );
   return {
     total: orgBrainData.workItems.length,
     active: orgBrainData.workItems.filter((item) =>
       ["Active", "Investigating", "Proposed"].includes(item.state),
     ).length,
     conflicts: conflicts.length,
-    services: new Set(orgBrainData.workItems.flatMap((item) => item.relatedServiceIds ?? [])).size,
+    services: new Set(
+      orgBrainData.workItems.flatMap((item) => item.relatedServiceIds ?? []),
+    ).size,
   };
 }

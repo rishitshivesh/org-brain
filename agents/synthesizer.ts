@@ -23,7 +23,9 @@ export function synthesizeIncidentRca(
 
   const confidence = Math.min(
     95,
-    Math.round(((observability.confidence ?? 80) + (change.confidence ?? 80)) / 2),
+    Math.round(
+      ((observability.confidence ?? 80) + (change.confidence ?? 80)) / 2,
+    ),
   );
   const commit = change.title.replace("Candidate change ", "");
   const sequentialValidation = change.evidence.some((item) =>

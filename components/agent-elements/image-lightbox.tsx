@@ -2,11 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import {
-  IconChevronLeft,
-  IconChevronRight,
-  IconX,
-} from "@tabler/icons-react";
+import { IconChevronLeft, IconChevronRight, IconX } from "@tabler/icons-react";
 import { cn } from "./utils/cn";
 
 export type LightboxImage = {
@@ -85,8 +81,7 @@ export function ImageLightbox({
       }
     };
     window.addEventListener("keydown", handleKeyDown, true);
-    return () =>
-      window.removeEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [open, hasMultipleImages, onClose, goToPrevious, goToNext]);
 
   // Lock body scroll while open so the page underneath doesn't move.

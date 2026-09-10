@@ -20,9 +20,15 @@ export function MetricCard({
           <Icon className="size-4 text-muted-foreground transition-colors group-hover/metric:text-foreground" />
         </span>
         <div className="min-w-0">
-          <p className="text-2xl font-semibold leading-none tracking-tight">{value}</p>
+          <p className="text-2xl font-semibold leading-none tracking-tight">
+            {value}
+          </p>
           <p className="mt-1 truncate text-xs text-muted-foreground">{label}</p>
-          {hint ? <p className="mt-0.5 truncate text-[11px] text-muted-foreground/70">{hint}</p> : null}
+          {hint ? (
+            <p className="mt-0.5 truncate text-[11px] text-muted-foreground/70">
+              {hint}
+            </p>
+          ) : null}
         </div>
       </CardContent>
     </Card>

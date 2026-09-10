@@ -14,10 +14,42 @@ import type {
 } from "./types";
 import { runWorkAgent } from "./work-agent";
 
-const workSignals = ["ado-", "work item", "partial settlement", "opd", "requirement", "conflict"];
-const incidentSignals = ["inc-", "incident", "latency", "trace", "logs", "slow", "error", "root cause", "rca"];
-const dependencySignals = ["dependency", "dependencies", "depends on", "upstream", "downstream", "blast radius", "calls", "service path"];
-const knowledgeSignals = ["adr-", "architecture", "decision", "constraint", "knowledge"];
+const workSignals = [
+  "ado-",
+  "work item",
+  "partial settlement",
+  "opd",
+  "requirement",
+  "conflict",
+];
+const incidentSignals = [
+  "inc-",
+  "incident",
+  "latency",
+  "trace",
+  "logs",
+  "slow",
+  "error",
+  "root cause",
+  "rca",
+];
+const dependencySignals = [
+  "dependency",
+  "dependencies",
+  "depends on",
+  "upstream",
+  "downstream",
+  "blast radius",
+  "calls",
+  "service path",
+];
+const knowledgeSignals = [
+  "adr-",
+  "architecture",
+  "decision",
+  "constraint",
+  "knowledge",
+];
 
 function includesAny(query: string, signals: string[]): boolean {
   return signals.some((signal) => query.includes(signal));
@@ -43,7 +75,8 @@ export function planOrchestration(rawQuery: string): OrchestrationPlan {
         ...(dependency ? ["dependency" as SpecialistAgentId] : []),
         ...(knowledge ? ["knowledge" as SpecialistAgentId] : []),
       ]),
-      reason: "Runtime evidence and engineering changes are evaluated separately, with dependency or architecture context added only when the query asks for it.",
+      reason:
+        "Runtime evidence and engineering changes are evaluated separately, with dependency or architecture context added only when the query asks for it.",
     };
   }
 
@@ -55,7 +88,8 @@ export function planOrchestration(rawQuery: string): OrchestrationPlan {
         ...(dependency ? ["dependency" as SpecialistAgentId] : []),
         ...(knowledge ? ["knowledge" as SpecialistAgentId] : []),
       ]),
-      reason: "Work context is primary, with dependency and architecture specialists added only when requested.",
+      reason:
+        "Work context is primary, with dependency and architecture specialists added only when requested.",
     };
   }
 
@@ -63,7 +97,8 @@ export function planOrchestration(rawQuery: string): OrchestrationPlan {
     return {
       intent: "service-analysis",
       agents: ["dependency"],
-      reason: "The query asks about explicit service reachability or blast radius.",
+      reason:
+        "The query asks about explicit service reachability or blast radius.",
     };
   }
 
@@ -71,14 +106,16 @@ export function planOrchestration(rawQuery: string): OrchestrationPlan {
     return {
       intent: "impact-analysis",
       agents: ["knowledge"],
-      reason: "The query asks for durable architecture decisions or constraints.",
+      reason:
+        "The query asks for durable architecture decisions or constraints.",
     };
   }
 
   return {
     intent: "general-query",
     agents: [],
-    reason: "No specialist is required for the currently supported deterministic query types.",
+    reason:
+      "No specialist is required for the currently supported deterministic query types.",
   };
 }
 
@@ -136,7 +173,9 @@ export async function runOrchestrator(
     references: [
       ...new Set([
         ...runs.flatMap((run) => run.references),
-        ...(synthesis?.rca.remediationDraft.sourceReferences?.map((reference) => reference.id) ?? []),
+        ...(synthesis?.rca.remediationDraft.sourceReferences?.map(
+          (reference) => reference.id,
+        ) ?? []),
       ]),
     ],
     answer: [

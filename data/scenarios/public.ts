@@ -31,7 +31,8 @@ export const publicScenarios: PublicScenarioDefinition[] = [
   {
     id: "retry-storm",
     title: "Cascading downstream failures",
-    description: "Reserved fixture for dependency and cascading-failure analysis.",
+    description:
+      "Reserved fixture for dependency and cascading-failure analysis.",
     ready: false,
     signals: ["trace", "logs", "metrics"],
     category: "dependency",

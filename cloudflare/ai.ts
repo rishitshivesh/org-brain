@@ -49,7 +49,10 @@ export async function groundAnswerWithWorkersAi(
           },
           {
             role: "user",
-            content: JSON.stringify({ query, evidence: compactEvidence(result) }),
+            content: JSON.stringify({
+              query,
+              evidence: compactEvidence(result),
+            }),
           },
         ],
         max_tokens: 900,
@@ -86,7 +89,8 @@ export async function groundAnswerWithWorkersAi(
         model,
         gatewayId,
         used: false,
-        fallbackReason: error instanceof Error ? error.message : "Workers AI request failed",
+        fallbackReason:
+          error instanceof Error ? error.message : "Workers AI request failed",
       },
     };
   }

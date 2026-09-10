@@ -26,13 +26,14 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   });
 
   const payload = (await response.json().catch(() => null)) as
-    | T
-    | { error?: string }
-    | null;
+    T | { error?: string } | null;
 
   if (!response.ok) {
     const message =
-      payload && typeof payload === "object" && "error" in payload && payload.error
+      payload &&
+      typeof payload === "object" &&
+      "error" in payload &&
+      payload.error
         ? payload.error
         : `Org Brain runtime request failed (${response.status})`;
     throw new Error(message);
@@ -87,7 +88,9 @@ export async function waitForRemoteResult(
     await sleep(pollIntervalMs);
   }
 
-  throw new Error("Cloudflare investigation did not return a result within 60 seconds");
+  throw new Error(
+    "Cloudflare investigation did not return a result within 60 seconds",
+  );
 }
 
 export async function runRemoteInvestigation(query: string): Promise<{
@@ -99,7 +102,9 @@ export async function runRemoteInvestigation(query: string): Promise<{
   const investigation = await waitForRemoteResult(created.id);
 
   if (!investigation.result) {
-    throw new Error("Cloudflare investigation completed without an orchestration result");
+    throw new Error(
+      "Cloudflare investigation completed without an orchestration result",
+    );
   }
 
   return {
@@ -114,7 +119,9 @@ export async function approveRemoteInvestigation(
   actions: ApprovalAction[],
 ): Promise<InvestigationState> {
   await requestJson(
-    endpoint(`/v1/investigations/${encodeURIComponent(investigationId)}/approval`),
+    endpoint(
+      `/v1/investigations/${encodeURIComponent(investigationId)}/approval`,
+    ),
     {
       method: "POST",
       body: JSON.stringify({ actions }),
@@ -125,7 +132,9 @@ export async function approveRemoteInvestigation(
   while (Date.now() - startedAt < approvalTimeoutMs) {
     const investigation = await getRemoteInvestigation(investigationId);
     if (investigation.status === "failed") {
-      throw new Error(investigation.error ?? "Cloudflare approval workflow failed");
+      throw new Error(
+        investigation.error ?? "Cloudflare approval workflow failed",
+      );
     }
     if (investigation.approval && investigation.status === "completed") {
       return investigation;
@@ -133,5 +142,7 @@ export async function approveRemoteInvestigation(
     await sleep(pollIntervalMs);
   }
 
-  throw new Error("Approval was accepted but durable completion was not observed within 20 seconds");
+  throw new Error(
+    "Approval was accepted but durable completion was not observed within 20 seconds",
+  );
 }

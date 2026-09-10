@@ -22,7 +22,7 @@ export async function runChangeAgent(
   const incidents = await providers.incidents.list();
   const incident = requestedIncidentId
     ? await providers.incidents.getById(requestedIncidentId)
-    : incidents[0] ?? null;
+    : (incidents[0] ?? null);
 
   if (!incident) return null;
 
@@ -41,7 +41,10 @@ export async function runChangeAgent(
     const change = context.sourceChanges.filter((item) =>
       deployment.commitShas.includes(item.commit.sha),
     );
-    const deltaMinutes = minutesBetween(deployment.deployedAt, incident.startedAt);
+    const deltaMinutes = minutesBetween(
+      deployment.deployedAt,
+      incident.startedAt,
+    );
 
     for (const item of change) {
       let score = deltaMinutes <= 15 ? 30 : deltaMinutes <= 60 ? 20 : 5;

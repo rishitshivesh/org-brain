@@ -26,7 +26,9 @@ export function WorkTable({ data }: { data: WorkItem[] }) {
         item.id.toLowerCase().includes(normalized) ||
         item.title.toLowerCase().includes(normalized) ||
         item.tags?.some((tag) => tag.toLowerCase().includes(normalized)) ||
-        item.relatedServiceIds?.some((service) => service.toLowerCase().includes(normalized));
+        item.relatedServiceIds?.some((service) =>
+          service.toLowerCase().includes(normalized),
+        );
 
       return matchesState && Boolean(matchesQuery);
     });
@@ -94,9 +96,13 @@ export function WorkTable({ data }: { data: WorkItem[] }) {
 
         <div className="mt-3 flex items-center justify-between gap-3 text-xs text-muted-foreground">
           <span>
-            <span className="font-medium text-foreground">{filteredCount}</span> of {data.length} work items
+            <span className="font-medium text-foreground">{filteredCount}</span>{" "}
+            of {data.length} work items
           </span>
-          <Badge variant="outline" className="hidden font-normal sm:inline-flex">
+          <Badge
+            variant="outline"
+            className="hidden font-normal sm:inline-flex"
+          >
             Seeded Azure DevOps view
           </Badge>
         </div>

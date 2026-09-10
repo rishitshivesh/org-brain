@@ -18,12 +18,19 @@ const incidentPattern = /INC-\d+/i;
 const deploymentPattern = /DEP-\d+/i;
 
 function list(items: string[]): string {
-  return items.length ? items.map((item) => `- ${item}`).join("\n") : "- None found";
+  return items.length
+    ? items.map((item) => `- ${item}`).join("\n")
+    : "- None found";
 }
 
-function getNamedService(services: Service[], query: string): Service | undefined {
+function getNamedService(
+  services: Service[],
+  query: string,
+): Service | undefined {
   const normalized = query.toLowerCase();
-  return services.find((service) => normalized.includes(service.name.toLowerCase()));
+  return services.find((service) =>
+    normalized.includes(service.name.toLowerCase()),
+  );
 }
 
 function workLabel(item: WorkItem): string {
@@ -42,21 +49,32 @@ export async function resolveOrgQuery(
   const services = await providers.services.list();
   const namedService = getNamedService(services, query);
 
-  if (incidentId || normalized.includes("latency") || normalized.includes("incident")) {
+  if (
+    incidentId ||
+    normalized.includes("latency") ||
+    normalized.includes("incident")
+  ) {
     const incidents = await providers.incidents.list();
     const selectedIncident = incidentId
       ? await providers.incidents.getById(incidentId)
-      : incidents.find((incident) => normalized.includes(incident.title.toLowerCase())) ?? incidents[0];
+      : (incidents.find((incident) =>
+          normalized.includes(incident.title.toLowerCase()),
+        ) ?? incidents[0]);
 
     if (selectedIncident) {
-      const context = await buildIncidentContext(providers, selectedIncident.id);
+      const context = await buildIncidentContext(
+        providers,
+        selectedIncident.id,
+      );
       if (context) {
         const slowestSpans = context.traces
           .flatMap((trace) => trace.spans)
           .sort((a, b) => b.durationMs - a.durationMs)
           .slice(0, 3)
           .map((span) => {
-            const service = context.traceServices.find((item) => item.id === span.serviceId);
+            const service = context.traceServices.find(
+              (item) => item.id === span.serviceId,
+            );
             return `${service?.name ?? span.serviceId}: ${span.operation} · ${span.durationMs} ms`;
           });
         const changes = context.sourceChanges.map(
@@ -96,12 +114,19 @@ export async function resolveOrgQuery(
     if (context) {
       return {
         intent: "impact-analysis",
-        references: [deploymentId, ...context.commits.map((commit) => commit.sha)],
+        references: [
+          deploymentId,
+          ...context.commits.map((commit) => commit.sha),
+        ],
         answer: [
           `**${deploymentId}** deployed **${context.service?.name ?? context.deployment.serviceId} ${context.deployment.version ?? ""}** to ${context.deployment.environment}.`,
           "",
           "**Commits**",
-          list(context.commits.map((commit) => `${commit.sha} · ${commit.message}`)),
+          list(
+            context.commits.map(
+              (commit) => `${commit.sha} · ${commit.message}`,
+            ),
+          ),
           "",
           "**Linked work**",
           list(context.workItems.map(workLabel)),
@@ -135,7 +160,11 @@ export async function resolveOrgQuery(
     }
   }
 
-  if (workItemId || normalized.includes("partial settlement") || normalized.includes("opd")) {
+  if (
+    workItemId ||
+    normalized.includes("partial settlement") ||
+    normalized.includes("opd")
+  ) {
     const context = await buildWorkPlanningContext(
       providers,
       workItemId ?? "partial settlement",
@@ -160,7 +189,8 @@ export async function resolveOrgQuery(
           "**Architecture constraints**",
           list(
             context.architectureDecisions.map(
-              (decision) => `**${decision.id}** · ${decision.title}: ${decision.summary}`,
+              (decision) =>
+                `**${decision.id}** · ${decision.title}: ${decision.summary}`,
             ),
           ),
           "",

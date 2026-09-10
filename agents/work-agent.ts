@@ -29,7 +29,9 @@ export async function runWorkAgent(
   if (!context) return null;
 
   const serviceNames = context.services.map((service) => service.name);
-  const conflicts = context.conflicts.map((item) => `${item.id} · ${item.title}`);
+  const conflicts = context.conflicts.map(
+    (item) => `${item.id} · ${item.title}`,
+  );
   const decisions = context.architectureDecisions.map(
     (decision) => `${decision.id} · ${decision.title}`,
   );

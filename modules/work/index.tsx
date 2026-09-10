@@ -10,10 +10,30 @@ export default function WorkComponent() {
   const summary = getWorkSummary();
 
   const metrics = [
-    { label: "Work items", value: summary.total, icon: ListTodo, hint: "Current organization slice" },
-    { label: "In motion", value: summary.active, icon: CircleDot, hint: "Active or investigating" },
-    { label: "Conflicts", value: summary.conflicts, icon: AlertTriangle, hint: "Explicit requirement conflicts" },
-    { label: "Services touched", value: summary.services, icon: Boxes, hint: "Resolved from work context" },
+    {
+      label: "Work items",
+      value: summary.total,
+      icon: ListTodo,
+      hint: "Current organization slice",
+    },
+    {
+      label: "In motion",
+      value: summary.active,
+      icon: CircleDot,
+      hint: "Active or investigating",
+    },
+    {
+      label: "Conflicts",
+      value: summary.conflicts,
+      icon: AlertTriangle,
+      hint: "Explicit requirement conflicts",
+    },
+    {
+      label: "Services touched",
+      value: summary.services,
+      icon: Boxes,
+      hint: "Resolved from work context",
+    },
   ];
 
   return (
@@ -26,7 +46,9 @@ export default function WorkComponent() {
 
       <div className="mx-auto w-full max-w-[1680px] space-y-6 p-5 sm:p-6">
         <div className="space-y-3">
-          <SectionLabel aside="Programmatic context, no model inference">Delivery pulse</SectionLabel>
+          <SectionLabel aside="Programmatic context, no model inference">
+            Delivery pulse
+          </SectionLabel>
           <div className="portal-grid grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {metrics.map((metric) => (
               <MetricCard key={metric.label} {...metric} />
@@ -35,7 +57,11 @@ export default function WorkComponent() {
         </div>
 
         <div className="space-y-3">
-          <SectionLabel aside={`${orgBrainData.workItems.length} indexed items`}>Work browser</SectionLabel>
+          <SectionLabel
+            aside={`${orgBrainData.workItems.length} indexed items`}
+          >
+            Work browser
+          </SectionLabel>
           <WorkTable data={orgBrainData.workItems} />
         </div>
       </div>

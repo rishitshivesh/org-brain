@@ -13,7 +13,11 @@ import {
   getWorkItemServices,
 } from "@/lib/org-brain";
 
-export default async function WorkItemPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function WorkItemPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
   const item = getWorkItem(id);
   if (!item) notFound();
@@ -45,20 +49,30 @@ export default async function WorkItemPage({ params }: { params: Promise<{ id: s
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div>
                 <p className="text-xs text-muted-foreground">State</p>
-                <Badge className="mt-2" variant="outline">{item.state}</Badge>
+                <Badge className="mt-2" variant="outline">
+                  {item.state}
+                </Badge>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Owner</p>
-                <p className="mt-2 text-sm font-medium">{team?.name ?? item.ownerTeamId ?? "Unassigned"}</p>
+                <p className="mt-2 text-sm font-medium">
+                  {team?.name ?? item.ownerTeamId ?? "Unassigned"}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Parent</p>
-                <p className="mt-2 text-sm font-medium">{parent ? `${parent.id} · ${parent.title}` : "No parent"}</p>
+                <p className="mt-2 text-sm font-medium">
+                  {parent ? `${parent.id} · ${parent.title}` : "No parent"}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Tags</p>
                 <div className="mt-2 flex flex-wrap gap-1">
-                  {item.tags?.map((tag) => <Badge key={tag} variant="secondary">{tag}</Badge>)}
+                  {item.tags?.map((tag) => (
+                    <Badge key={tag} variant="secondary">
+                      {tag}
+                    </Badge>
+                  ))}
                 </div>
               </div>
             </CardContent>
@@ -68,15 +82,26 @@ export default async function WorkItemPage({ params }: { params: Promise<{ id: s
             <Card className="border-destructive/30 bg-destructive/5 shadow-none">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <TriangleAlert className="size-4 text-destructive" /> Requirement conflict
+                  <TriangleAlert className="size-4 text-destructive" />{" "}
+                  Requirement conflict
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {conflicts.map((conflict) => (
-                  <Link key={conflict.id} href={`/work/${conflict.id}`} className="block rounded-lg border bg-background p-3 hover:bg-muted/50">
-                    <p className="font-mono text-xs text-muted-foreground">{conflict.id}</p>
+                  <Link
+                    key={conflict.id}
+                    href={`/work/${conflict.id}`}
+                    className="block rounded-lg border bg-background p-3 hover:bg-muted/50"
+                  >
+                    <p className="font-mono text-xs text-muted-foreground">
+                      {conflict.id}
+                    </p>
                     <p className="mt-1 text-sm font-medium">{conflict.title}</p>
-                    {conflict.description ? <p className="mt-1 text-sm text-muted-foreground">{conflict.description}</p> : null}
+                    {conflict.description ? (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {conflict.description}
+                      </p>
+                    ) : null}
                   </Link>
                 ))}
               </CardContent>
@@ -86,7 +111,9 @@ export default async function WorkItemPage({ params }: { params: Promise<{ id: s
 
         <Card className="h-fit shadow-none">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><Boxes className="size-4" /> Affected services</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Boxes className="size-4" /> Affected services
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {services.map((service) => (
@@ -98,8 +125,12 @@ export default async function WorkItemPage({ params }: { params: Promise<{ id: s
               >
                 <Link2 className="size-4" />
                 <span className="min-w-0 text-left">
-                  <span className="block truncate text-sm font-medium">{service.name}</span>
-                  <span className="block text-xs text-muted-foreground">{service.type}</span>
+                  <span className="block truncate text-sm font-medium">
+                    {service.name}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    {service.type}
+                  </span>
                 </span>
               </Button>
             ))}

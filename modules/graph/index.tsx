@@ -76,7 +76,9 @@ function GraphViewport({ children }: { children: React.ReactNode }) {
 
 export default function GraphComponent() {
   const incident = orgBrainData.incidents[0];
-  const deployment = incident ? getDeployment(incident.correlatedDeploymentIds?.[0]) : undefined;
+  const deployment = incident
+    ? getDeployment(incident.correlatedDeploymentIds?.[0])
+    : undefined;
   const commit = deployment ? getCommit(deployment.commitShas[0]) : undefined;
   const workItem = commit ? getWorkItem(commit.workItemIds?.[0]) : undefined;
 
@@ -89,7 +91,9 @@ export default function GraphComponent() {
       />
 
       <div className="mx-auto w-full max-w-[1680px] space-y-4 p-5 sm:p-6">
-        <SectionLabel aside={`${orgBrainData.serviceDependencies.length} explicit dependency edges`}>
+        <SectionLabel
+          aside={`${orgBrainData.serviceDependencies.length} explicit dependency edges`}
+        >
           Relationship explorer
         </SectionLabel>
 
@@ -102,10 +106,18 @@ export default function GraphComponent() {
             </TabsList>
           </div>
 
-          <TabsContent value="services" className="animate-in fade-in slide-in-from-bottom-1 duration-300">
+          <TabsContent
+            value="services"
+            className="animate-in fade-in slide-in-from-bottom-1 duration-300"
+          >
             <GraphViewport>
               <Chain>
-                {["SVC-CLAIMS-WEB", "SVC-CLAIMS-API", "SVC-CLAIMS-WORKER", "SVC-DOCUMENT"].map((id) => {
+                {[
+                  "SVC-CLAIMS-WEB",
+                  "SVC-CLAIMS-API",
+                  "SVC-CLAIMS-WORKER",
+                  "SVC-DOCUMENT",
+                ].map((id) => {
                   const service = getService(id);
                   return (
                     <Node
@@ -120,27 +132,65 @@ export default function GraphComponent() {
             </GraphViewport>
           </TabsContent>
 
-          <TabsContent value="work" className="animate-in fade-in slide-in-from-bottom-1 duration-300">
+          <TabsContent
+            value="work"
+            className="animate-in fade-in slide-in-from-bottom-1 duration-300"
+          >
             <GraphViewport>
               <Chain>
-                <Node label="ADO-4231" meta="Partial OPD settlement" icon={Workflow} />
-                <Node label="claims-api" meta="settlement lifecycle" icon={Boxes} />
-                <Node label="rules-engine" meta="eligibility rules" icon={Boxes} />
+                <Node
+                  label="ADO-4231"
+                  meta="Partial OPD settlement"
+                  icon={Workflow}
+                />
+                <Node
+                  label="claims-api"
+                  meta="settlement lifecycle"
+                  icon={Boxes}
+                />
+                <Node
+                  label="rules-engine"
+                  meta="eligibility rules"
+                  icon={Boxes}
+                />
               </Chain>
               <div className="mt-5 flex max-w-2xl items-start gap-2 rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm text-muted-foreground">
-                <Badge variant="destructive" className="shrink-0">Conflict</Badge>
-                <span>ADO-3988 requires all-or-nothing settlement semantics.</span>
+                <Badge variant="destructive" className="shrink-0">
+                  Conflict
+                </Badge>
+                <span>
+                  ADO-3988 requires all-or-nothing settlement semantics.
+                </span>
               </div>
             </GraphViewport>
           </TabsContent>
 
-          <TabsContent value="incident" className="animate-in fade-in slide-in-from-bottom-1 duration-300">
+          <TabsContent
+            value="incident"
+            className="animate-in fade-in slide-in-from-bottom-1 duration-300"
+          >
             <GraphViewport>
               <Chain>
-                <Node label={incident?.id ?? "Incident"} meta={incident?.title ?? "No incident"} icon={Network} />
-                <Node label={deployment?.version ?? "Deployment"} meta={deployment?.id ?? "Not correlated"} icon={GitCommitHorizontal} />
-                <Node label={commit?.sha ?? "Commit"} meta={commit?.message ?? "No commit"} icon={GitCommitHorizontal} />
-                <Node label={workItem?.id ?? "Work item"} meta={workItem?.title ?? "No linked work"} icon={Workflow} />
+                <Node
+                  label={incident?.id ?? "Incident"}
+                  meta={incident?.title ?? "No incident"}
+                  icon={Network}
+                />
+                <Node
+                  label={deployment?.version ?? "Deployment"}
+                  meta={deployment?.id ?? "Not correlated"}
+                  icon={GitCommitHorizontal}
+                />
+                <Node
+                  label={commit?.sha ?? "Commit"}
+                  meta={commit?.message ?? "No commit"}
+                  icon={GitCommitHorizontal}
+                />
+                <Node
+                  label={workItem?.id ?? "Work item"}
+                  meta={workItem?.title ?? "No linked work"}
+                  icon={Workflow}
+                />
               </Chain>
             </GraphViewport>
           </TabsContent>

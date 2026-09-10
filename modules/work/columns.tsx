@@ -10,8 +10,10 @@ import { getService, getTeam } from "@/lib/org-brain";
 import type { WorkItem } from "@/types/org-brain";
 
 const stateVariant = (state: WorkItem["state"]) => {
-  if (["Done", "Resolved", "Closed"].includes(state)) return "secondary" as const;
-  if (["Blocked", "Investigating"].includes(state)) return "destructive" as const;
+  if (["Done", "Resolved", "Closed"].includes(state))
+    return "secondary" as const;
+  if (["Blocked", "Investigating"].includes(state))
+    return "destructive" as const;
   return "outline" as const;
 };
 
@@ -39,7 +41,10 @@ export const columns: ColumnDef<typeof features, WorkItem>[] = [
     header: "Title",
     cell: ({ row }) => (
       <div className="min-w-[260px] max-w-[420px]">
-        <Link href={`/work/${row.original.id}`} className="font-medium hover:underline">
+        <Link
+          href={`/work/${row.original.id}`}
+          className="font-medium hover:underline"
+        >
           {row.original.title}
         </Link>
         {row.original.conflictsWith?.length ? (
@@ -54,13 +59,19 @@ export const columns: ColumnDef<typeof features, WorkItem>[] = [
   {
     accessorKey: "state",
     header: "State",
-    cell: ({ row }) => <Badge variant={stateVariant(row.original.state)}>{row.original.state}</Badge>,
+    cell: ({ row }) => (
+      <Badge variant={stateVariant(row.original.state)}>
+        {row.original.state}
+      </Badge>
+    ),
   },
   {
     accessorKey: "ownerTeamId",
     header: "Owner",
     cell: ({ row }) => (
-      <span className="text-sm">{getTeam(row.original.ownerTeamId)?.name ?? row.original.ownerTeamId}</span>
+      <span className="text-sm">
+        {getTeam(row.original.ownerTeamId)?.name ?? row.original.ownerTeamId}
+      </span>
     ),
   },
   {

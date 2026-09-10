@@ -7,7 +7,11 @@ import type {
 } from "../types/investigation";
 import type { Env } from "./env";
 import { InvestigationStateObject } from "./investigation-state";
-import { patchInvestigation, readInvestigation, writeInvestigation } from "./state-client";
+import {
+  patchInvestigation,
+  readInvestigation,
+  writeInvestigation,
+} from "./state-client";
 import { InvestigationWorkflow } from "./workflow";
 
 export { InvestigationStateObject, InvestigationWorkflow };
@@ -17,7 +21,8 @@ const jsonHeaders = { "content-type": "application/json; charset=utf-8" };
 function corsHeaders(env: Env, request: Request): HeadersInit {
   const configured = env.ALLOWED_ORIGIN?.trim() || "*";
   const requestOrigin = request.headers.get("origin");
-  const origin = configured === "*" || requestOrigin === configured ? configured : "null";
+  const origin =
+    configured === "*" || requestOrigin === configured ? configured : "null";
 
   return {
     "access-control-allow-origin": origin,
@@ -28,7 +33,12 @@ function corsHeaders(env: Env, request: Request): HeadersInit {
   };
 }
 
-function json(env: Env, request: Request, value: unknown, status = 200): Response {
+function json(
+  env: Env,
+  request: Request,
+  value: unknown,
+  status = 200,
+): Response {
   return new Response(JSON.stringify(value), {
     status,
     headers: { ...jsonHeaders, ...corsHeaders(env, request) },
@@ -49,12 +59,18 @@ function approvalIdFromPath(pathname: string): string | null {
   return match?.[1] ? decodeURIComponent(match[1]) : null;
 }
 
-async function createInvestigation(request: Request, env: Env): Promise<Response> {
-  const body = (await request.json().catch(() => null)) as CreateInvestigationInput | null;
+async function createInvestigation(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  const body = (await request
+    .json()
+    .catch(() => null)) as CreateInvestigationInput | null;
   const query = body?.query?.trim();
 
   if (!query) return json(env, request, { error: "query is required" }, 400);
-  if (query.length > 4000) return json(env, request, { error: "query is too long" }, 400);
+  if (query.length > 4000)
+    return json(env, request, { error: "query is too long" }, 400);
 
   const id = `INV-${crypto.randomUUID()}`;
   const now = new Date().toISOString();
@@ -76,10 +92,14 @@ async function createInvestigation(request: Request, env: Env): Promise<Response
     const investigation = await patchInvestigation(env, id, {
       workflowInstanceId: instance.id,
     });
-    const response: InvestigationResponse = { runtime: "cloudflare", investigation };
+    const response: InvestigationResponse = {
+      runtime: "cloudflare",
+      investigation,
+    };
     return json(env, request, response, 202);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to start workflow";
+    const message =
+      error instanceof Error ? error.message : "Failed to start workflow";
     await patchInvestigation(env, id, { status: "failed", error: message });
     return json(env, request, { error: message, investigationId: id }, 500);
   }
@@ -91,8 +111,12 @@ async function getInvestigation(
   investigationId: string,
 ): Promise<Response> {
   const investigation = await readInvestigation(env, investigationId);
-  if (!investigation) return json(env, request, { error: "Investigation not found" }, 404);
-  const response: InvestigationResponse = { runtime: "cloudflare", investigation };
+  if (!investigation)
+    return json(env, request, { error: "Investigation not found" }, 404);
+  const response: InvestigationResponse = {
+    runtime: "cloudflare",
+    investigation,
+  };
   return json(env, request, response);
 }
 
@@ -102,15 +126,28 @@ async function approveInvestigation(
   investigationId: string,
 ): Promise<Response> {
   const investigation = await readInvestigation(env, investigationId);
-  if (!investigation) return json(env, request, { error: "Investigation not found" }, 404);
+  if (!investigation)
+    return json(env, request, { error: "Investigation not found" }, 404);
   if (!investigation.result?.rca) {
-    return json(env, request, { error: "This investigation has no RCA approval step" }, 409);
+    return json(
+      env,
+      request,
+      { error: "This investigation has no RCA approval step" },
+      409,
+    );
   }
   if (investigation.status !== "waiting-approval") {
-    return json(env, request, { error: `Investigation is ${investigation.status}` }, 409);
+    return json(
+      env,
+      request,
+      { error: `Investigation is ${investigation.status}` },
+      409,
+    );
   }
 
-  const body = (await request.json().catch(() => null)) as InvestigationApprovalInput | null;
+  const body = (await request
+    .json()
+    .catch(() => null)) as InvestigationApprovalInput | null;
   const actions = body?.actions?.filter(isApprovalAction) ?? [];
   const uniqueActions = [...new Set(actions)];
   const workflowId = investigation.workflowInstanceId ?? investigation.id;
@@ -138,7 +175,10 @@ async function approveInvestigation(
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: corsHeaders(env, request) });
+      return new Response(null, {
+        status: 204,
+        headers: corsHeaders(env, request),
+      });
     }
 
     const url = new URL(request.url);

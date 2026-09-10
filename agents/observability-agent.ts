@@ -18,7 +18,7 @@ export async function runObservabilityAgent(
   const incidents = await providers.incidents.list();
   const incident = requestedIncidentId
     ? await providers.incidents.getById(requestedIncidentId)
-    : incidents[0] ?? null;
+    : (incidents[0] ?? null);
 
   if (!incident) return null;
 
@@ -27,7 +27,9 @@ export async function runObservabilityAgent(
 
   const spans = context.traces.flatMap((trace) => trace.spans);
   const parentSpanIds = new Set(
-    spans.map((span) => span.parentSpanId).filter((id): id is string => Boolean(id)),
+    spans
+      .map((span) => span.parentSpanId)
+      .filter((id): id is string => Boolean(id)),
   );
   const leafSpans = spans.filter((span) => !parentSpanIds.has(span.id));
   const candidateSpans = leafSpans.length ? leafSpans : spans;
@@ -35,7 +37,10 @@ export async function runObservabilityAgent(
     .sort((a, b) => b.durationMs - a.durationMs)
     .slice(0, 3);
   const anomalousMetrics = context.metrics
-    .map((metric) => ({ ...metric, change: ratio(metric.before, metric.after) }))
+    .map((metric) => ({
+      ...metric,
+      change: ratio(metric.before, metric.after),
+    }))
     .filter((metric) => metric.change >= 1.5)
     .sort((a, b) => b.change - a.change);
   const warningLogs = context.logs.filter(
@@ -56,10 +61,12 @@ export async function runObservabilityAgent(
           `${slowestService?.name ?? slowest.serviceId} spent ${slowest.durationMs} ms in ${slowest.operation}`,
         ]
       : []),
-    ...anomalousMetrics.slice(0, 3).map(
-      (metric) =>
-        `${metric.metric} moved from ${metric.before}${metric.unit ?? ""} to ${metric.after}${metric.unit ?? ""} (${metric.change.toFixed(1)}×)`,
-    ),
+    ...anomalousMetrics
+      .slice(0, 3)
+      .map(
+        (metric) =>
+          `${metric.metric} moved from ${metric.before}${metric.unit ?? ""} to ${metric.after}${metric.unit ?? ""} (${metric.change.toFixed(1)}×)`,
+      ),
     ...warningLogs.slice(0, 2).map((log) => `${log.id}: ${log.message}`),
   ];
   const evidenceAgainst = context.metrics

@@ -20,7 +20,9 @@ export interface InvestigationWorkflowPayload {
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Investigation workflow failed";
+  return error instanceof Error
+    ? error.message
+    : "Investigation workflow failed";
 }
 
 export class InvestigationWorkflow extends WorkflowEntrypoint<
