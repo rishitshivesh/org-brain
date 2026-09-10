@@ -1,10 +1,8 @@
 # Org Brain — Final Demo Checklist
 
-Use this immediately before submission. The goal is a clean, repeatable 3–5 minute demo, not an expedition through every screen.
+Use this immediately before submission. The strongest demo is a coherent closed loop, not a tour of every button humanity has managed to invent.
 
-## 1. Local quality gate
-
-Run from the repository root:
+## 1. Quality gate
 
 ```bash
 yarn install
@@ -14,9 +12,15 @@ yarn typecheck
 yarn build
 ```
 
-Fix any error before recording/submitting. Warnings that do not affect runtime can be documented, but do not ignore TypeScript or build failures.
+Do not record around a TypeScript/build failure.
 
-## 2. Cloudflare runtime
+## 2. Cloudflare setup
+
+Authenticate Wrangler, then ensure the memory resource exists:
+
+```bash
+yarn cf:memory:setup
+```
 
 Start the Worker:
 
@@ -24,7 +28,7 @@ Start the Worker:
 yarn cf:dev
 ```
 
-Set frontend environment:
+Set frontend `.env.local`:
 
 ```bash
 NEXT_PUBLIC_ORG_BRAIN_API_URL=http://localhost:8787
@@ -36,120 +40,171 @@ Start Next.js:
 yarn dev
 ```
 
-Confirm `GET http://localhost:8787/health` responds before the demo.
+Open `/runtime`. Confirm the Worker is online and inspect:
 
-## 3. Primary demo — Incident RCA
+- Workers AI model
+- AI Gateway
+- Workflow
+- Durable Object state
+- D1 organization provider/history
+- Vectorize memory, or D1 fallback if the local Vectorize binding is unavailable
 
-Open `/scenario-lab`, inject **Claims submission latency spike**, copy its guided Ask prompt, then open `/` and submit it.
+## 3. Primary demo — incident RCA
+
+Open `/scenario-lab` and inject **Claims submission latency spike**.
+
+Use the guided prompt:
+
+> Investigate INC-2409. Explain why claims submission latency increased, show the strongest runtime evidence, correlate any recent code or deployment change, and propose a mitigation plus remediation work item.
 
 Expected evidence:
 
 - `INC-2409`
-- `tr_8b92f17c`
-- `DEP-2198`
+- trace `tr_8b92f17c`
+- deployment `DEP-2198`
 - `claims-worker` v3.19.2
 - commit `8fc19b2`
-- sequential document validation
+- sequential document validation source
 - consumer processing `42 ms → 890 ms`
 - consumer lag `4,200 → 91,000`
 - CPU/memory comparatively stable
 
-The conclusion should attribute the strongest cause to sequential document validation rather than merely saying the service was slow.
+The Agent Elements activity should visibly separate trace/log/metric inspection, deployment/commit/source inspection, historical-memory search and RCA synthesis.
 
-## 4. Human approval
+## 4. Edit the remediation before approval
 
-After RCA synthesis choose **Mitigation + remediation**.
+While the investigation is `waiting-approval`, copy its investigation ID from Ask or History and open:
+
+```text
+/remediation/<investigation-id>
+```
+
+Change one acceptance criterion and click **Save durable draft**.
+
+This demonstrates that generated actions are reviewable artifacts, not immutable LLM output.
+
+## 5. Human approval + provider handoff
+
+Return to Ask and approve **Mitigation + remediation**.
 
 Verify:
 
-- approval is recorded
-- remote mode shows durable investigation state
-- the Workflow resumes after approval
-- remediation is prepared for provider handoff
-- no external rollback is executed
-- no external Azure DevOps item is created
+- the same Cloudflare Workflow resumes
+- approval becomes durable
+- the Workflow reads the latest edited remediation draft
+- `/handoffs` contains a D1-backed prepared work-item handoff
+- external mutations remain `0`
 
-The safety story matters: Org Brain proposes, a human approves, execution remains a separate boundary.
+The safety story is deliberate: proposal → human review → approval → provider boundary. No silent production rollback occurs.
 
-## 5. Secondary scenario — Database pool exhaustion
+## 6. Demonstrate closed-loop memory
+
+Open `/history`.
+
+Confirm the completed RCA appears in D1 history, then search:
+
+> claims latency document validation
+
+With Vectorize bound, results can include prior RCA, ADR and work-item memory. Without it, incident history falls back to D1 text retrieval.
+
+Then run another incident and observe **Searched investigation memory** inside Ask before Workers AI synthesis.
+
+## 7. Secondary scenario — database pool exhaustion
 
 Inject **Intermittent checkout timeouts** and use its guided prompt.
 
-Expected investigation path:
+Expected investigation shape:
 
 - `INC-2417`
 - `tr_4cc71d02`
 - `DEP-2214`
 - commit `c41db71`
-- `db.acquireConnection` is the dominant leaf span
+- `db.acquireConnection` dominates
 - pool max `24 → 6`
 - pending acquisitions `1 → 31`
 - checkout p95 `312 ms → 2260 ms`
-- CPU stays close to baseline
+- CPU remains close to baseline
 
-Expected RCA: a capacity regression caused by an undersized connection pool, not generic CPU or database-server saturation.
+Expected conclusion: connection-pool capacity/configuration regression, not generic CPU saturation.
 
-## 6. Secondary scenario — Retry amplification
+## 8. Secondary scenario — retry amplification
 
 Inject **Cascading downstream failures** and use its guided prompt.
 
-Expected investigation path:
+Expected investigation shape:
 
 - `INC-2424`
 - `tr_92f4ad10`
 - `DEP-2231`
 - commit `a90ed31`
-- five document validation attempts in one request path
-- document requests per claim `1.1 → 4.7`
+- repeated document validation attempts
+- requests per claim `1.1 → 4.7`
 - document-service traffic `390 → 1840 rps`
 - document-service error rate `0.8% → 18.6%`
-- ADR-031 requires bounded exponential backoff
 
-Expected RCA: near-immediate retries amplify an existing dependency failure into a broader traffic and latency cascade.
+Expected conclusion: aggressive retry behavior amplifies a downstream slowdown into a wider failure cascade.
 
-Only show one secondary scenario in the recorded demo unless there is time. Having all three available is useful for reviewer exploration.
+Only show one secondary scenario in the recorded demo unless time permits.
 
-## 7. Planning intelligence
+## 9. Planning intelligence + work package
 
-Submit:
+Ask:
 
-> What changes if we support partial settlement for OPD claims?
+> Plan the implementation for partial settlement support for OPD claims and break it down into work items.
 
 Expected context:
 
 - `ADO-4231`
-- conflict with `ADO-3988`
+- explicit conflict with `ADO-3988`
 - affected services
 - `ADR-018`
-- recommendation consistent with settlement lifecycle ownership
+- Work Agent activity
+- a generated feature + per-service Story package with acceptance criteria
 
-This proves Org Brain is broader than incident RCA.
+This proves Org Brain handles forward planning as well as incidents.
 
-## 8. Optional 30-second graph tour
+## 10. Evaluation harness
 
-Open `/graph` and show:
+Open `/evaluations`.
+
+Explain that each seeded incident is run through the same orchestrator and scored against a **server-only** hidden evaluation contract on:
+
+- evidence coverage
+- service attribution
+- deployment attribution
+- commit/change attribution
+- causal alignment
+
+The browser receives scores, not the answer key.
+
+## 11. Architecture + runtime close
+
+Open `/architecture` and show the closed loop:
 
 ```text
-Incident → Deployment → Commit → Work Item
+D1 providers
+→ specialists
+→ historical memory
+→ Workers AI
+→ Durable Object
+→ Workflow approval
+→ provider handoff
+→ D1 / Vectorize memory
 ```
 
-Then briefly show service dependency/blast-radius context. The graph proves the relationships are explicit rather than invented by the LLM.
+Then `/runtime` proves the configured Cloudflare components are reachable.
 
-## 9. Submission explanation
-
-> Org Brain is an AI-powered engineering intelligence workspace that connects work items, services, deployments, source changes, observability, incidents and architecture decisions. It resolves explicit engineering relationships programmatically, runs bounded specialist agents for work, observability, change, dependency and knowledge analysis, then uses Workers AI to synthesize evidence. Cloudflare Workflows and Durable Objects keep investigations durable and pause RCA actions for explicit human approval before any provider handoff.
-
-## 10. Cloudflare products to name
+## 12. Cloudflare products to name
 
 - Workers
 - Workers AI
+- AI Gateway
 - Workflows
 - Durable Objects
-- AI Gateway
+- D1
+- Vectorize
 
-Do not claim D1 or Vectorize are implemented unless they are actually added before submission.
-
-## 11. Files reviewers should see
+## 13. Files reviewers should see
 
 - `SUBMISSION.md`
 - `README.md`
@@ -157,26 +212,33 @@ Do not claim D1 or Vectorize are implemented unless they are actually added befo
 - `AI-COMMANDS.md`
 - `cloudflare/index.ts`
 - `cloudflare/workflow.ts`
+- `cloudflare/d1-providers.ts`
+- `cloudflare/persistence.ts`
+- `cloudflare/memory.ts`
 - `cloudflare/investigation-state.ts`
-- `cloudflare/ai.ts`
 - `agents/`
-- `providers/`
 - `lib/context-builders.ts`
 - `data/scenarios/`
+- `app/evaluations/`
 
-## 12. Final ten-minute sanity pass
+## 14. Final sanity pass
 
-- refresh the page during/after an investigation
-- test `Cmd/Ctrl + K`
-- verify long chat and tables scroll correctly
-- verify all three Scenario Lab fixtures show as seeded
-- verify each scenario opens the correct incident
-- verify guided prompt copy works
-- verify no console-breaking client error
-- verify approval question is clickable
-- verify Cloudflare/local badge is correct
-- verify Worker CORS origin matches deployed frontend
-- verify no secret is committed
-- verify `.env.local` is ignored
-- verify scenario answer key is not imported client-side
-- open repository in an incognito/logged-out context if reviewers need public access
+- `yarn format`
+- `yarn lint`
+- `yarn typecheck`
+- `yarn build`
+- `yarn cf:dev`
+- `/runtime` reports Worker online
+- all three scenarios open the correct incident
+- guided prompt copy works
+- long chat/tables scroll correctly
+- remediation can be edited before approval and not after
+- approval resumes the Workflow
+- approved remediation appears under `/handoffs`
+- history persists after refresh
+- memory search does not expose hidden evaluation truth
+- no console-breaking client error
+- CORS origin matches deployed frontend
+- no secret or `.env.local` is committed
+- `data/scenarios/evaluation.ts` is not imported by client/runtime agent code
+- repository visibility/access matches submission requirements
