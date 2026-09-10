@@ -9,9 +9,36 @@ function minutesBetween(earlier: string, later: string): number {
   return Math.max(0, (Date.parse(later) - Date.parse(earlier)) / 60000);
 }
 
-function sourceLooksSequential(content: string): boolean {
+function inspectSource(content: string): string[] {
   const normalized = content.replace(/\s+/g, " ").toLowerCase();
-  return normalized.includes("for (") && normalized.includes("await ");
+  const signals: string[] = [];
+
+  if (normalized.includes("for (") && normalized.includes("await ")) {
+    signals.push("awaited work inside a loop");
+  }
+
+  const poolMax = normalized.match(/max\s*:\s*(\d+)/)?.[1];
+  if (poolMax && /pool|database/.test(normalized)) {
+    signals.push(`database pool max configured to ${poolMax}`);
+  }
+
+  const retries = normalized.match(/retries\s*:\s*(\d+)/)?.[1];
+  const minDelay = normalized.match(/mindelayms\s*:\s*(\d+)/)?.[1];
+  const maxDelay = normalized.match(/maxdelayms\s*:\s*(\d+)/)?.[1];
+  if (retries) {
+    signals.push(
+      `retry policy allows ${Number(retries) + 1} total attempts${minDelay !== undefined && maxDelay !== undefined ? ` with ${minDelay}-${maxDelay} ms delay` : ""}`,
+    );
+  }
+
+  return signals;
+}
+
+function scoreSignal(signal: string): number {
+  if (signal === "awaited work inside a loop") return 35;
+  if (signal.startsWith("database pool max")) return 30;
+  if (signal.startsWith("retry policy allows")) return 35;
+  return 0;
 }
 
 export async function runChangeAgent(
@@ -34,7 +61,7 @@ export async function runChangeAgent(
     commit: string;
     repository: string;
     path: string;
-    sequentialAwait: boolean;
+    signals: string[];
   }> = [];
 
   for (const deployment of context.deployments) {
@@ -53,7 +80,9 @@ export async function runChangeAgent(
         `${item.commit.sha} · ${item.commit.message}`,
       ];
 
-      if (/document|validat/i.test(item.commit.message)) score += 15;
+      if (/document|validat|database|pool|retry|timeout/i.test(item.commit.message)) {
+        score += 15;
+      }
 
       for (const path of item.files) {
         const snapshot = item.repository
@@ -65,18 +94,18 @@ export async function runChangeAgent(
           : null;
         if (!snapshot) continue;
 
-        const sequentialAwait = sourceLooksSequential(snapshot.content);
+        const signals = inspectSource(snapshot.content);
         sourceEvidence.push({
           commit: item.commit.sha,
           repository: item.repository?.name ?? item.commit.repositoryId,
           path,
-          sequentialAwait,
+          signals,
         });
 
-        if (/document|validat/i.test(path)) score += 10;
-        if (sequentialAwait) {
-          score += 35;
-          evidence.push(`${path} performs awaited work inside a loop`);
+        if (/document|validat|database|config|client|retry/i.test(path)) score += 10;
+        for (const signal of signals) {
+          score += scoreSignal(signal);
+          evidence.push(`${path}: ${signal}`);
         }
       }
 
@@ -93,7 +122,7 @@ export async function runChangeAgent(
         confidence,
         evidence,
         evidenceAgainst: [
-          "The deployment completed successfully, so this is a behavioral regression rather than a failed rollout.",
+          "The deployment completed successfully, so this is a behavioral or configuration regression rather than a failed rollout.",
         ],
       });
     }
