@@ -10,6 +10,7 @@ import {
   Cloud,
   FileCode2,
   GitBranch,
+  Layers3,
   Network,
   Search,
   ShieldAlert,
@@ -30,6 +31,7 @@ const toolMeta = {
   search_work_items: { label: "Searched work items", icon: Search },
   resolve_work_impact: { label: "Resolved work impact", icon: Network },
   check_work_conflicts: { label: "Checked conflicts", icon: ShieldAlert },
+  prepare_work_package: { label: "Prepared work package", icon: Layers3 },
   inspect_trace: { label: "Inspected trace", icon: Activity },
   inspect_logs: { label: "Inspected logs", icon: Search },
   compare_metrics: { label: "Compared metrics", icon: Activity },
@@ -74,7 +76,7 @@ function outputSummary(name: string, output: unknown): string {
     return value.state.replaceAll("-", " ");
   if (name === "search_incident_memory" && Array.isArray(value.matches))
     return value.matches.length
-      ? `${value.matches.length} prior investigation${value.matches.length === 1 ? "" : "s"}`
+      ? `${value.matches.length} memory match${value.matches.length === 1 ? "" : "es"}`
       : "No prior match";
   if (name === "search_work_items" && typeof value.matched === "string")
     return value.matched;
@@ -82,6 +84,8 @@ function outputSummary(name: string, output: unknown): string {
     return `${value.services.length} services`;
   if (name === "check_work_conflicts" && Array.isArray(value.conflicts))
     return `${value.conflicts.length} conflicts`;
+  if (name === "prepare_work_package" && Array.isArray(value.items))
+    return `${value.items.length} draft item${value.items.length === 1 ? "" : "s"}`;
   if (name === "inspect_trace" && Array.isArray(value.services))
     return `${value.services.length} services traced`;
   if (name === "inspect_logs" && typeof value.total === "number")
