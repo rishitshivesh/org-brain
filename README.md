@@ -8,7 +8,9 @@ The project is deliberately programmatic first. Entity relationships are resolve
 
 The frontend, mock provider layer, deterministic organization-context builders and five bounded specialist roles are in place.
 
-Incident questions run through separate Observability and Change specialists before RCA synthesis. Dependency and Knowledge specialists can be added when a query asks for blast-radius or architecture context. RCA mitigation/remediation actions now require an explicit human approval decision in the Agent Elements chat.
+Incident questions run through separate Observability and Change specialists before RCA synthesis. Dependency and Knowledge specialists are added when a query asks for blast-radius or architecture context. RCA mitigation/remediation actions require an explicit human approval decision in the Agent Elements chat.
+
+The portal interaction layer is also in place: one viewport scroll owner, contained table/chat context scrolling, route-entry motion, staggered surfaces, subtle ambient motion, reduced-motion support, responsive horizontal graph browsing and a working `Cmd/Ctrl + K` command palette.
 
 Available surfaces:
 
@@ -68,7 +70,7 @@ Dependency or Knowledge context is added only when requested. The Change Agent d
 
 ## Approval boundary
 
-Agent Elements' native Question tool is used to capture approval for mitigation and remediation actions.
+Agent Elements' native Question tool captures approval for mitigation and remediation actions.
 
 Approval and execution are deliberately separate:
 
@@ -77,6 +79,14 @@ Approval and execution are deliberately separate:
 - no external work item, rollback or deployment mutation is performed yet
 
 This boundary is intended to become durable Workflow state when Cloudflare orchestration is connected.
+
+## Portal interaction layer
+
+The app shell owns viewport scrolling so long screens do not create nested full-page scrollbars. Tables and side context panels get explicit bounded scroll regions, while graph chains remain horizontally browsable on smaller viewports.
+
+Motion uses the existing CSS/Tailwind stack rather than introducing a runtime animation dependency. Page entry, card stagger, tool activity and scenario state transitions are intentionally subtle and automatically disabled for users requesting reduced motion.
+
+The top bar exposes a keyboard command palette with `Cmd/Ctrl + K` for fast navigation across the same route set used by the sidebar.
 
 ## Agent UI
 
@@ -104,4 +114,4 @@ yarn build
 
 ## Next milestone
 
-The local orchestration boundary is now broad enough. The next phase should move execution onto Cloudflare Workers AI and Workflows, persist investigation/approval state, and introduce Vectorize-backed historical engineering memory without changing the provider and specialist contracts.
+The local orchestration boundary is broad enough. The next phase should move execution onto Cloudflare Workers AI and Workflows, persist investigation/approval state, and introduce Vectorize-backed historical engineering memory without changing the provider and specialist contracts.

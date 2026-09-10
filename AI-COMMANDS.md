@@ -64,6 +64,18 @@ This file keeps a small set of representative development commands used for impl
 
 > Use Agent Elements' Question tool to gate RCA mitigation and remediation actions. Record the selected approval locally, prepare remediation for provider handoff only after approval, and keep approval distinct from external execution.
 
+## Portal interaction pass
+
+> Make the portal feel fluid without adding another animation dependency. Give the application one clear scroll owner, contain long tables and side panels, add subtle route and staggered surface motion, respect reduced-motion preferences, and improve hover/focus feedback across primary engineering views.
+
+## Global navigation
+
+> Add a keyboard-driven command palette for moving between Org Brain surfaces. Keep it consistent with the current sidebar routes and make the visible keyboard affordance functional rather than decorative.
+
+## Scenario interaction polish
+
+> Improve Scenario Lab so fixture injection has visible state change and motion while keeping the hidden evaluation answer key outside the client path.
+
 ## Scenario review
 
 > Review the seeded incident end to end. Verify timestamps, trace IDs, service relationships, deployment versions, commit references and work-item links are internally consistent, and keep public scenario metadata separate from the evaluation answer key.

@@ -26,7 +26,7 @@ const initialMessages: UIMessage[] = [
     parts: [
       {
         type: "text",
-        text: "Org Brain can now coordinate work, runtime, code-change, dependency and architecture specialists. RCA actions remain gated behind an explicit human approval step.",
+        text: "Org Brain can coordinate work, runtime, code-change, dependency and architecture specialists. RCA actions remain gated behind an explicit human approval step.",
       },
     ],
   },
@@ -260,24 +260,36 @@ export function ChatExample() {
   }
 
   return (
-    <div className="min-h-full bg-background">
+    <div className="min-h-full bg-background/35">
       <PageHeader
         eyebrow="Ask Org Brain"
         title="Engineering context, coordinated"
         description="Bounded specialists resolve work, architecture, dependencies, runtime evidence and source changes. Any resulting action remains human-gated."
       />
 
-      <div className="grid min-h-[calc(100vh-11rem)] gap-4 p-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <Card className="min-h-[620px] overflow-hidden shadow-none">
-          <CardHeader className="border-b py-4">
+      <div className="mx-auto grid w-full max-w-[1680px] gap-4 p-5 sm:p-6 xl:grid-cols-[minmax(0,1fr)_330px]">
+        <Card className="min-h-[650px] overflow-hidden border-foreground/10 bg-card/88 py-0 shadow-sm backdrop-blur-sm xl:h-[min(74svh,860px)]">
+          <CardHeader className="border-b bg-card/80 py-4 backdrop-blur-xl">
             <div className="flex items-center justify-between gap-3">
               <CardTitle className="flex items-center gap-2 text-base">
-                <Sparkles className="size-4" /> Org Brain
+                <span className="relative flex size-8 items-center justify-center rounded-lg border bg-muted/40">
+                  {status !== "ready" ? (
+                    <span className="absolute inset-0 animate-pulse rounded-lg bg-foreground/5" />
+                  ) : null}
+                  <Sparkles className="relative size-4" />
+                </span>
+                Org Brain
               </CardTitle>
-              <Badge variant="outline">{lastIntent}</Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="font-normal">{lastIntent}</Badge>
+                <span className="relative flex size-2">
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500/40 motion-reduce:hidden" />
+                  <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+                </span>
+              </div>
             </div>
           </CardHeader>
-          <CardContent className="h-[calc(100%-65px)] p-0">
+          <CardContent className="h-[calc(100%-65px)] min-h-0 p-0">
             <AgentChat
               messages={messages}
               status={status}
@@ -297,8 +309,8 @@ export function ChatExample() {
           </CardContent>
         </Card>
 
-        <div className="space-y-4">
-          <Card className="shadow-none">
+        <div className="portal-scroll space-y-4 xl:max-h-[min(74svh,860px)] xl:overflow-y-auto xl:pr-1">
+          <Card className="portal-card-hover border-foreground/10 bg-card/78 shadow-none backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-sm">Available context</CardTitle>
             </CardHeader>
@@ -324,18 +336,23 @@ export function ChatExample() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-none">
+          <Card className="portal-card-hover border-foreground/10 bg-card/78 shadow-none backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-sm">Last orchestration</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {activeAgents.length ? (
-                activeAgents.map((agent) => (
-                  <div key={agent} className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm">
-                    <span className="capitalize">{agent} Agent</span>
-                    <Badge variant="secondary">completed</Badge>
-                  </div>
-                ))
+                <div className="portal-grid space-y-2">
+                  {activeAgents.map((agent) => (
+                    <div
+                      key={agent}
+                      className="flex items-center justify-between rounded-lg border bg-background/50 px-3 py-2 text-sm"
+                    >
+                      <span className="capitalize">{agent} Agent</span>
+                      <Badge variant="secondary" className="font-normal">completed</Badge>
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <p className="text-sm leading-6 text-muted-foreground">
                   No specialist was needed for the last query. The deterministic resolver handled it directly.
@@ -345,7 +362,7 @@ export function ChatExample() {
           </Card>
 
           {lastRun?.rca ? (
-            <Card className="shadow-none">
+            <Card className="portal-card-hover animate-in fade-in slide-in-from-bottom-2 border-foreground/10 bg-card/90 shadow-sm duration-300">
               <CardHeader>
                 <div className="flex items-center justify-between gap-3">
                   <CardTitle className="text-sm">Latest RCA</CardTitle>
@@ -354,17 +371,17 @@ export function ChatExample() {
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <p className="leading-6">{lastRun.rca.rootCause}</p>
-                <div className="rounded-lg border bg-muted/20 p-3">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Mitigation draft</p>
+                <div className="rounded-xl border bg-muted/20 p-3">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Mitigation draft</p>
                   <p className="mt-1 leading-5">{lastRun.rca.mitigation}</p>
                 </div>
-                <div className="rounded-lg border bg-muted/20 p-3">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Remediation work</p>
+                <div className="rounded-xl border bg-muted/20 p-3">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Remediation work</p>
                   <p className="mt-1 font-medium">{lastRun.rca.remediationDraft.title}</p>
                   <p className="mt-1 text-xs text-muted-foreground">Draft only until approved</p>
                 </div>
                 {lastApproval ? (
-                  <div className="flex items-center justify-between rounded-lg border px-3 py-2">
+                  <div className="flex items-center justify-between rounded-lg border bg-background/50 px-3 py-2">
                     <span className="text-xs text-muted-foreground">Approval</span>
                     <Badge variant="outline">{lastApproval.status}</Badge>
                   </div>
@@ -373,7 +390,7 @@ export function ChatExample() {
             </Card>
           ) : null}
 
-          <Card className="border-dashed shadow-none">
+          <Card className="border-dashed bg-card/45 shadow-none backdrop-blur-sm">
             <CardContent className="p-4 text-sm leading-6 text-muted-foreground">
               Specialist execution is capped at three runs. Approvals are recorded separately from execution, ready to become durable Workflow state later.
             </CardContent>

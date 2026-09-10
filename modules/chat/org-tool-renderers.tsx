@@ -59,7 +59,7 @@ function outputSummary(name: string, output: unknown): string {
   if (name === "synthesize_rca" && typeof value.confidence === "number") return `${value.confidence}% confidence`;
   if (name === "prepare_mitigation" && value.execution === "draft-only") return "Draft only";
   if (name === "prepare_remediation_work" && value.execution === "draft-only") return "Draft only";
-  if (name === "record_approval" && typeof value.status === "string") return value.status;
+  if (name === "record_approval" && typeof value.status === "string") return value.status.replaceAll("-", " ");
   if (name === "select_specialists" && Array.isArray(value.agents)) return `${value.agents.length} specialist${value.agents.length === 1 ? "" : "s"}`;
 
   return "Completed";
@@ -71,11 +71,13 @@ export function OrgToolRenderer({ name, output, status }: CustomToolRendererProp
     icon: Search,
   };
   const Icon = meta.icon;
+  const pending = status !== "success" && status !== "error";
 
   return (
-    <div className="my-1 flex items-center gap-2 rounded-lg border bg-muted/20 px-3 py-2 text-sm">
-      <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-background ring-1 ring-foreground/10">
-        <Icon className="size-3.5 text-muted-foreground" />
+    <div className="animate-in fade-in slide-in-from-bottom-1 my-1 flex items-center gap-2 rounded-xl border bg-muted/20 px-3 py-2 text-sm duration-200">
+      <span className="relative flex size-8 shrink-0 items-center justify-center rounded-lg border bg-background/80 shadow-sm">
+        {pending ? <span className="absolute inset-0 animate-pulse rounded-lg bg-foreground/5" /> : null}
+        <Icon className="relative size-3.5 text-muted-foreground" />
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">{meta.label}</p>
@@ -83,7 +85,12 @@ export function OrgToolRenderer({ name, output, status }: CustomToolRendererProp
           {status === "success" ? outputSummary(name, output) : status}
         </p>
       </div>
-      <Badge variant={status === "error" ? "destructive" : "outline"}>{status}</Badge>
+      <Badge
+        variant={status === "error" ? "destructive" : "outline"}
+        className="shrink-0 font-normal capitalize"
+      >
+        {status}
+      </Badge>
     </div>
   );
 }
