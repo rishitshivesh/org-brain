@@ -3,7 +3,11 @@ import {
   buildWorkPlanningContext,
 } from "@/lib/context-builders";
 import type { OrgBrainProviders } from "@/providers/types";
-import type { ArchitectureDecision, Service } from "@/types/org-brain";
+import type {
+  ArchitectureDecision,
+  Service,
+  WorkItem,
+} from "@/types/org-brain";
 
 import type { SpecialistAgentResult } from "./types";
 
@@ -18,6 +22,31 @@ function findNamedService(services: Service[], query: string): Service | undefin
 
 function uniqueDecisions(items: ArchitectureDecision[]): ArchitectureDecision[] {
   return [...new Map(items.map((item) => [item.id, item])).values()];
+}
+
+function workTerms(workItem: WorkItem): string[] {
+  const titleTerms = workItem.title
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((term) => term.length >= 5);
+  return [...new Set([...(workItem.tags ?? []).map((tag) => tag.toLowerCase()), ...titleTerms])];
+}
+
+function relevantToWork(
+  decisions: ArchitectureDecision[],
+  workItem: WorkItem,
+): ArchitectureDecision[] {
+  const terms = workTerms(workItem);
+  const direct = decisions.filter((decision) =>
+    decision.relatedWorkItemIds?.includes(workItem.id),
+  );
+  const semantic = decisions.filter((decision) => {
+    const haystack = `${decision.title} ${decision.summary} ${decision.context ?? ""} ${decision.decision ?? ""}`.toLowerCase();
+    return terms.some((term) => haystack.includes(term));
+  });
+
+  const matched = uniqueDecisions([...direct, ...semantic]);
+  return matched.length ? matched : decisions;
 }
 
 export async function runKnowledgeAgent(
@@ -39,7 +68,7 @@ export async function runKnowledgeAgent(
   if (decisions.length === 0 && workItemId) {
     const context = await buildWorkPlanningContext(providers, workItemId);
     if (context) {
-      decisions = context.architectureDecisions;
+      decisions = relevantToWork(context.architectureDecisions, context.workItem);
       scope = context.workItem.id;
     }
   }
@@ -62,7 +91,10 @@ export async function runKnowledgeAgent(
     }
   }
 
-  if (decisions.length === 0 && /architecture|adr|decision|constraint|knowledge/i.test(query)) {
+  if (
+    decisions.length === 0 &&
+    /architecture|adr|decision|constraint|knowledge/i.test(query)
+  ) {
     decisions = allDecisions;
     scope = "architecture knowledge";
   }
@@ -85,8 +117,12 @@ export async function runKnowledgeAgent(
       confidence: 100,
       evidence: [
         `${decision.id} is ${decision.status}`,
-        ...(decision.relatedServiceIds?.map((serviceId) => `Applies to ${serviceId}`) ?? []),
-        ...(decision.relatedWorkItemIds?.map((workItemId) => `Linked to ${workItemId}`) ?? []),
+        ...(decision.relatedServiceIds?.map(
+          (serviceId) => `Applies to ${serviceId}`,
+        ) ?? []),
+        ...(decision.relatedWorkItemIds?.map(
+          (workItemId) => `Linked to ${workItemId}`,
+        ) ?? []),
       ],
     })),
     tools: [
@@ -114,7 +150,9 @@ export async function runKnowledgeAgent(
       "",
       `I found **${decisions.length} architecture decision${decisions.length === 1 ? "" : "s"}** relevant to **${scope}**.`,
       "",
-      ...(constraints.length ? constraints.map((constraint) => `- ${constraint}`) : ["- No accepted constraint found."]),
+      ...(constraints.length
+        ? constraints.map((constraint) => `- ${constraint}`)
+        : ["- No accepted constraint found."]),
       "",
       "These are durable architecture constraints from the organization model, not recommendations generated for this query.",
     ].join("\n"),
