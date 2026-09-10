@@ -6,13 +6,13 @@ The project is deliberately programmatic first. Entity relationships are resolve
 
 ## Current milestone
 
-The frontend, mock provider layer, deterministic organization-context builders and first bounded specialist-agent flow are in place.
+The frontend, mock provider layer, deterministic organization-context builders and five bounded specialist roles are in place.
 
-Incident questions now run through separate Observability and Change specialists before an RCA is synthesized. Work-planning questions continue to use the Work Agent. Mitigation and remediation outputs are drafts only.
+Incident questions run through separate Observability and Change specialists before RCA synthesis. Dependency and Knowledge specialists can be added when a query asks for blast-radius or architecture context. RCA mitigation/remediation actions now require an explicit human approval decision in the Agent Elements chat.
 
 Available surfaces:
 
-- `/` — Agent Elements-based Ask workspace with specialist activity and RCA synthesis
+- `/` — Agent Elements-based Ask workspace with specialist activity, RCA synthesis and approval gating
 - `/work` — Azure DevOps-style work intelligence, filtering and conflict visibility
 - `/incidents` — operational incidents linked to traces and deployments
 - `/services` — service catalog with ownership, repositories and dependencies
@@ -36,17 +36,19 @@ Mock data is exposed through provider contracts under `providers/` rather than c
 
 The incident builder resolves traces, participating services, deployments, commits, linked work, logs, metrics, architecture decisions and source changes.
 
-## Agent flow
+## Specialist flow
 
-The local orchestrator is intentionally bounded.
+The local orchestrator caps each query at three specialist runs.
 
 Current specialists:
 
-- Work Agent — requirement impact, conflicts and architecture constraints
+- Work Agent — requirement impact, conflicts and linked work context
 - Observability Agent — traces, logs, metrics and runtime bottleneck localization
 - Change Agent — deployment timing, commits, source snapshots and change correlation
+- Dependency Agent — explicit upstream/downstream traversal and bounded blast-radius analysis
+- Knowledge Agent — durable ADRs and architecture constraints
 
-For incident/RCA queries the flow is:
+For incident/RCA queries the core path remains:
 
 ```text
 query
@@ -58,13 +60,27 @@ Change Agent
 RCA Synthesizer
   ↓
 mitigation draft + remediation work draft
+  ↓
+human approval
 ```
 
-The Change Agent does not read the scenario evaluation answer key. It only uses data reachable through the provider/context graph.
+Dependency or Knowledge context is added only when requested. The Change Agent does not read the scenario evaluation answer key.
+
+## Approval boundary
+
+Agent Elements' native Question tool is used to capture approval for mitigation and remediation actions.
+
+Approval and execution are deliberately separate:
+
+- approving remediation prepares the draft for a future provider handoff
+- approving mitigation marks it eligible for a future execution provider
+- no external work item, rollback or deployment mutation is performed yet
+
+This boundary is intended to become durable Workflow state when Cloudflare orchestration is connected.
 
 ## Agent UI
 
-The repository includes the Agent Elements chat surface from 21st.dev. Tool activity is rendered inline for specialist selection, trace/log/metric inspection, deployment and commit analysis, source inspection, change correlation and RCA synthesis.
+The repository includes the Agent Elements chat surface from 21st.dev. Tool activity is rendered inline for specialist selection, trace/log/metric inspection, deployment and commit analysis, source inspection, dependency traversal, architecture constraints, change correlation, RCA synthesis and approval recording.
 
 ## Scenario model
 
@@ -88,4 +104,4 @@ yarn build
 
 ## Next milestone
 
-The next phase should introduce approval-aware work/mitigation actions and the remaining Knowledge/Dependency specialists before moving orchestration onto Cloudflare Workflows and Workers AI.
+The local orchestration boundary is now broad enough. The next phase should move execution onto Cloudflare Workers AI and Workflows, persist investigation/approval state, and introduce Vectorize-backed historical engineering memory without changing the provider and specialist contracts.

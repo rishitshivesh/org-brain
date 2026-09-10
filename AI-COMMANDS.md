@@ -50,7 +50,19 @@ This file keeps a small set of representative development commands used for impl
 
 ## RCA synthesis
 
-> Combine Observability and Change findings into a structured RCA with confidence, supporting and contradictory evidence, a mitigation draft, and a remediation work-item draft. Keep both actions draft-only for now.
+> Combine Observability and Change findings into a structured RCA with confidence, supporting and contradictory evidence, a mitigation draft, and a remediation work-item draft. Keep both actions draft-only until explicitly approved.
+
+## Dependency analysis
+
+> Add a Dependency Agent that traverses explicit service edges up to a bounded depth, reports upstream callers and downstream blast radius, and never infers graph links that are not present in the service catalog.
+
+## Architecture knowledge
+
+> Add a Knowledge Agent that resolves relevant ADRs and architecture constraints for work items, incidents and services. Keep durable recorded decisions separate from generated recommendations.
+
+## Approval boundary
+
+> Use Agent Elements' Question tool to gate RCA mitigation and remediation actions. Record the selected approval locally, prepare remediation for provider handoff only after approval, and keep approval distinct from external execution.
 
 ## Scenario review
 
