@@ -2,6 +2,7 @@ import {
   ArrowLeft,
   Clock3,
   Code2,
+  FileCode2,
   Gauge,
   GitCommitHorizontal,
   RadioTower,
@@ -12,7 +13,6 @@ import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageHeader } from "@/modules/common/page-header";
 import {
   getDeploymentCommits,
   getIncident,
@@ -21,6 +21,23 @@ import {
   getService,
   orgBrainData,
 } from "@/lib/org-brain";
+import { PageHeader } from "@/modules/common/page-header";
+import type { MetricComparison } from "@/types/org-brain";
+
+function metricsForIncident(
+  incidentId: string,
+  metrics: MetricComparison[],
+): MetricComparison[] {
+  if (incidentId === "INC-2417") {
+    return metrics.filter((metric) => /^(db_|checkout_|cpu_|memory_)/.test(metric.metric));
+  }
+  if (incidentId === "INC-2424") {
+    return metrics.filter((metric) =>
+      /^(document_|submit_|requests_|error_|cpu_|memory_)/.test(metric.metric),
+    );
+  }
+  return metrics.filter((metric) => /^(consumer_|cpu_|memory_)/.test(metric.metric));
+}
 
 export default async function IncidentPage({
   params,
@@ -34,12 +51,17 @@ export default async function IncidentPage({
   const traces = getIncidentTraces(incident);
   const deployments = getIncidentDeployments(incident);
   const commits = deployments.flatMap(getDeploymentCommits);
+  const commitShas = new Set(commits.map((commit) => commit.sha));
+  const sourceSnapshots = orgBrainData.sourceSnapshots.filter((snapshot) =>
+    commitShas.has(snapshot.commitSha),
+  );
   const logs = orgBrainData.logs.filter((log) =>
     traces.some((trace) => trace.id === log.traceId),
   );
-  const metrics = orgBrainData.metrics.filter((metric) =>
+  const serviceMetrics = orgBrainData.metrics.filter((metric) =>
     incident.affectedServiceIds.includes(metric.serviceId),
   );
+  const metrics = metricsForIncident(incident.id, serviceMetrics);
   const primaryTrace = traces[0];
   const maxDuration = primaryTrace?.durationMs ?? 1;
 
@@ -60,9 +82,9 @@ export default async function IncidentPage({
         }
       />
 
-      <div className="grid gap-5 p-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid gap-5 p-6 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-5">
-          <Card className="shadow-none">
+          <Card className="portal-card-hover shadow-none">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <RadioTower className="size-4" /> Trace path
@@ -80,15 +102,20 @@ export default async function IncidentPage({
                     key={span.id}
                     className="grid grid-cols-[150px_minmax(0,1fr)_70px] items-center gap-3 text-xs"
                   >
-                    <span className="truncate font-medium">
-                      {service?.name ?? span.serviceId}
-                    </span>
-                    <div className="h-7 rounded-md bg-muted p-1">
+                    <div className="min-w-0">
+                      <span className="block truncate font-medium">
+                        {service?.name ?? span.serviceId}
+                      </span>
+                      <span className="block truncate text-[10px] text-muted-foreground">
+                        {span.operation}
+                      </span>
+                    </div>
+                    <div className="h-7 overflow-hidden rounded-md bg-muted p-1">
                       <div
                         className={
                           span.status === "error"
-                            ? "h-full rounded-sm bg-destructive/70"
-                            : "h-full rounded-sm bg-foreground/20"
+                            ? "h-full rounded-sm bg-destructive/70 transition-[width] duration-700"
+                            : "h-full rounded-sm bg-foreground/20 transition-[width] duration-700"
                         }
                         style={{ width: `${width}%` }}
                         title={`${span.operation} · ${span.durationMs} ms`}
@@ -103,7 +130,7 @@ export default async function IncidentPage({
             </CardContent>
           </Card>
 
-          <Card className="shadow-none">
+          <Card className="portal-card-hover shadow-none">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <Code2 className="size-4" /> Correlated logs
@@ -113,7 +140,7 @@ export default async function IncidentPage({
               {logs.map((log) => (
                 <div
                   key={log.id}
-                  className="grid gap-2 rounded-lg border p-3 sm:grid-cols-[70px_140px_minmax(0,1fr)]"
+                  className="grid gap-2 rounded-lg border bg-background/45 p-3 transition-colors hover:bg-muted/20 sm:grid-cols-[70px_140px_minmax(0,1fr)]"
                 >
                   <Badge
                     variant={log.level === "error" ? "destructive" : "outline"}
@@ -124,15 +151,49 @@ export default async function IncidentPage({
                   <span className="font-mono text-xs text-muted-foreground">
                     {getService(log.serviceId)?.name ?? log.serviceId}
                   </span>
-                  <span className="text-sm">{log.message}</span>
+                  <div>
+                    <span className="text-sm">{log.message}</span>
+                    {log.metadata ? (
+                      <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+                        {Object.entries(log.metadata)
+                          .map(([key, value]) => `${key}=${String(value)}`)
+                          .join(" · ")}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
               ))}
             </CardContent>
           </Card>
+
+          {sourceSnapshots.length ? (
+            <Card className="portal-card-hover overflow-hidden shadow-none">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <FileCode2 className="size-4" /> Suspect source
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {sourceSnapshots.map((snapshot) => (
+                  <div key={`${snapshot.commitSha}-${snapshot.path}`} className="overflow-hidden rounded-xl border">
+                    <div className="flex items-center justify-between gap-3 border-b bg-muted/35 px-3 py-2">
+                      <span className="truncate font-mono text-xs">{snapshot.path}</span>
+                      <Badge variant="outline" className="shrink-0 font-mono text-[10px]">
+                        {snapshot.commitSha}
+                      </Badge>
+                    </div>
+                    <pre className="portal-scroll overflow-x-auto bg-zinc-950 p-4 text-xs leading-5 text-zinc-100">
+                      <code>{snapshot.content}</code>
+                    </pre>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
 
         <div className="space-y-5">
-          <Card className="shadow-none">
+          <Card className="portal-card-hover shadow-none">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <GitCommitHorizontal className="size-4" /> Change context
@@ -142,7 +203,12 @@ export default async function IncidentPage({
               {deployments.map((deployment) => (
                 <div key={deployment.id} className="rounded-lg border p-3">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="font-medium">{deployment.version}</span>
+                    <div>
+                      <p className="font-medium">{deployment.version}</p>
+                      <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
+                        {deployment.id}
+                      </p>
+                    </div>
                     <Badge variant="secondary">{deployment.status}</Badge>
                   </div>
                   <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
@@ -163,33 +229,43 @@ export default async function IncidentPage({
             </CardContent>
           </Card>
 
-          <Card className="shadow-none">
+          <Card className="portal-card-hover shadow-none">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <Gauge className="size-4" /> Signal deltas
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {metrics.map((metric) => (
-                <div
-                  key={`${metric.serviceId}-${metric.metric}`}
-                  className="flex items-end justify-between gap-4 border-b pb-3 last:border-0 last:pb-0"
-                >
-                  <div>
-                    <p className="text-sm font-medium">
-                      {metric.metric.replaceAll("_", " ")}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {getService(metric.serviceId)?.name}
-                    </p>
+              {metrics.map((metric) => {
+                const change = metric.before === 0 ? null : metric.after / metric.before;
+                return (
+                  <div
+                    key={`${metric.serviceId}-${metric.metric}`}
+                    className="flex items-end justify-between gap-4 border-b pb-3 last:border-0 last:pb-0"
+                  >
+                    <div>
+                      <p className="text-sm font-medium">
+                        {metric.metric.replaceAll("_", " ")}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {getService(metric.serviceId)?.name}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-mono text-sm">
+                        {metric.before} → {metric.after} {metric.unit}
+                      </p>
+                      {change && change >= 1.5 ? (
+                        <p className="mt-0.5 text-[10px] font-medium text-destructive">
+                          {change.toFixed(1)}× regression
+                        </p>
+                      ) : (
+                        <p className="mt-0.5 text-[10px] text-muted-foreground">near baseline</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-mono text-sm">
-                      {metric.before} → {metric.after} {metric.unit}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
         </div>
