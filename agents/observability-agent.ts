@@ -26,12 +26,21 @@ export async function runObservabilityAgent(
   if (!context) return null;
 
   const spans = context.traces.flatMap((trace) => trace.spans);
-  const slowestSpans = [...spans].sort((a, b) => b.durationMs - a.durationMs).slice(0, 3);
+  const parentSpanIds = new Set(
+    spans.map((span) => span.parentSpanId).filter((id): id is string => Boolean(id)),
+  );
+  const leafSpans = spans.filter((span) => !parentSpanIds.has(span.id));
+  const candidateSpans = leafSpans.length ? leafSpans : spans;
+  const slowestSpans = [...candidateSpans]
+    .sort((a, b) => b.durationMs - a.durationMs)
+    .slice(0, 3);
   const anomalousMetrics = context.metrics
     .map((metric) => ({ ...metric, change: ratio(metric.before, metric.after) }))
     .filter((metric) => metric.change >= 1.5)
     .sort((a, b) => b.change - a.change);
-  const warningLogs = context.logs.filter((log) => log.level === "warn" || log.level === "error");
+  const warningLogs = context.logs.filter(
+    (log) => log.level === "warn" || log.level === "error",
+  );
 
   const slowest = slowestSpans[0];
   const slowestService = slowest
@@ -43,7 +52,9 @@ export async function runObservabilityAgent(
     : "No trace bottleneck found";
   const evidence = [
     ...(slowest
-      ? [`${slowestService?.name ?? slowest.serviceId} spent ${slowest.durationMs} ms in ${slowest.operation}`]
+      ? [
+          `${slowestService?.name ?? slowest.serviceId} spent ${slowest.durationMs} ms in ${slowest.operation}`,
+        ]
       : []),
     ...anomalousMetrics.slice(0, 3).map(
       (metric) =>
@@ -52,7 +63,10 @@ export async function runObservabilityAgent(
     ...warningLogs.slice(0, 2).map((log) => `${log.id}: ${log.message}`),
   ];
   const evidenceAgainst = context.metrics
-    .filter((metric) => metric.metric.includes("cpu") || metric.metric.includes("memory"))
+    .filter(
+      (metric) =>
+        metric.metric.includes("cpu") || metric.metric.includes("memory"),
+    )
     .filter((metric) => ratio(metric.before, metric.after) < 1.5)
     .map(
       (metric) =>
@@ -80,11 +94,17 @@ export async function runObservabilityAgent(
       {
         id: `trace-${incident.id}`,
         name: "inspect_trace",
-        input: { incidentId: incident.id, traceIds: context.traces.map((trace) => trace.id) },
+        input: {
+          incidentId: incident.id,
+          traceIds: context.traces.map((trace) => trace.id),
+        },
         output: {
           services: context.traceServices.map((service) => service.name),
           slowestSpans: slowestSpans.map((span) => ({
-            service: context.traceServices.find((service) => service.id === span.serviceId)?.name ?? span.serviceId,
+            service:
+              context.traceServices.find(
+                (service) => service.id === span.serviceId,
+              )?.name ?? span.serviceId,
             operation: span.operation,
             durationMs: span.durationMs,
             status: span.status,
@@ -97,13 +117,19 @@ export async function runObservabilityAgent(
         input: { incidentId: incident.id },
         output: {
           total: context.logs.length,
-          warningsAndErrors: warningLogs.map((log) => ({ id: log.id, level: log.level, message: log.message })),
+          warningsAndErrors: warningLogs.map((log) => ({
+            id: log.id,
+            level: log.level,
+            message: log.message,
+          })),
         },
       },
       {
         id: `metrics-${incident.id}`,
         name: "compare_metrics",
-        input: { serviceIds: context.traceServices.map((service) => service.id) },
+        input: {
+          serviceIds: context.traceServices.map((service) => service.id),
+        },
         output: {
           anomalies: anomalousMetrics.map((metric) => ({
             metric: metric.metric,
