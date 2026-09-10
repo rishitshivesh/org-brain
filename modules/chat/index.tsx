@@ -20,7 +20,7 @@ const initialMessages: UIMessage[] = [
     parts: [
       {
         type: "text",
-        text: "The first specialist layer is connected. I can route work-planning questions to the Work Agent and incident/runtime questions to the Observability Agent while keeping all source context deterministic.",
+        text: "Org Brain now separates runtime analysis from code-change attribution. Incident questions route through Observability and Change specialists before an RCA is synthesized.",
       },
     ],
   },
@@ -82,6 +82,16 @@ function assistantRunMessage(result: OrchestrationResult): UIMessage {
     }
   }
 
+  for (const tool of result.tools ?? []) {
+    parts.push({
+      type: `tool-mcp__user-tools__${tool.name}`,
+      toolCallId: tool.id,
+      state: "output-available",
+      input: tool.input,
+      output: tool.output,
+    });
+  }
+
   parts.push({ type: "text", text: result.answer });
 
   return {
@@ -96,6 +106,7 @@ export function ChatExample() {
   const [status, setStatus] = useState<ChatStatus>("ready");
   const [lastIntent, setLastIntent] = useState<string>("orchestrator-ready");
   const [activeAgents, setActiveAgents] = useState<string[]>([]);
+  const [lastRun, setLastRun] = useState<OrchestrationResult | null>(null);
 
   async function handleSend(input: { role: "user"; content: string }) {
     if (!input.content.trim()) return;
@@ -107,6 +118,7 @@ export function ChatExample() {
       const result = await runOrchestrator(orgBrainProviders, input.content);
       setLastIntent(result.plan.intent);
       setActiveAgents(result.plan.agents);
+      setLastRun(result);
       setMessages((current) => [...current, assistantRunMessage(result)]);
     } catch {
       setMessages((current) => [
@@ -126,7 +138,7 @@ export function ChatExample() {
       <PageHeader
         eyebrow="Ask Org Brain"
         title="Engineering context, coordinated"
-        description="The orchestrator now dispatches bounded specialists over deterministic organization context. Workers AI is deliberately not connected yet."
+        description="Runtime symptoms, engineering changes and work context are evaluated by bounded specialists before synthesis. No production action is executed from this surface."
       />
 
       <div className="grid min-h-[calc(100vh-11rem)] gap-4 p-6 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -200,9 +212,36 @@ export function ChatExample() {
             </CardContent>
           </Card>
 
+          {lastRun?.rca ? (
+            <Card className="shadow-none">
+              <CardHeader>
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="text-sm">Latest RCA</CardTitle>
+                  <Badge variant="secondary">{lastRun.rca.confidence}%</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <p className="leading-6">{lastRun.rca.rootCause}</p>
+                <div className="rounded-lg border bg-muted/20 p-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Mitigation draft
+                  </p>
+                  <p className="mt-1 leading-5">{lastRun.rca.mitigation}</p>
+                </div>
+                <div className="rounded-lg border bg-muted/20 p-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Remediation work
+                  </p>
+                  <p className="mt-1 font-medium">{lastRun.rca.remediationDraft.title}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Draft only · no work item created</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
           <Card className="border-dashed shadow-none">
             <CardContent className="p-4 text-sm leading-6 text-muted-foreground">
-              Specialist runs are intentionally bounded to two agents. The Observability Agent can localize a bottleneck, but source-code attribution is reserved for the upcoming Change Agent.
+              Specialist execution is capped at three bounded runs. Mitigation and remediation output remain drafts until a later approval workflow is connected.
             </CardContent>
           </Card>
         </div>

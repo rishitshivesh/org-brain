@@ -2,7 +2,17 @@
 
 import type { CustomToolRendererProps } from "@/components/agent-elements/types";
 import { Badge } from "@/components/ui/badge";
-import { Activity, GitBranch, Network, Search, ShieldAlert } from "lucide-react";
+import {
+  Activity,
+  FileCode2,
+  GitBranch,
+  Network,
+  Search,
+  ShieldAlert,
+  Sparkles,
+  Undo2,
+  Wrench,
+} from "lucide-react";
 
 const toolMeta = {
   search_work_items: { label: "Searched work items", icon: Search },
@@ -11,6 +21,13 @@ const toolMeta = {
   inspect_trace: { label: "Inspected trace", icon: Activity },
   inspect_logs: { label: "Inspected logs", icon: Search },
   compare_metrics: { label: "Compared metrics", icon: Activity },
+  inspect_deployments: { label: "Inspected deployments", icon: GitBranch },
+  inspect_commits: { label: "Inspected commits", icon: GitBranch },
+  inspect_source_changes: { label: "Inspected source changes", icon: FileCode2 },
+  correlate_change: { label: "Correlated change", icon: Network },
+  synthesize_rca: { label: "Synthesized RCA", icon: Sparkles },
+  prepare_mitigation: { label: "Prepared mitigation", icon: Undo2 },
+  prepare_remediation_work: { label: "Prepared remediation work", icon: Wrench },
   select_specialists: { label: "Selected specialists", icon: GitBranch },
 } as const;
 
@@ -35,6 +52,27 @@ function outputSummary(name: string, output: unknown): string {
   }
   if (name === "compare_metrics" && Array.isArray(value.anomalies)) {
     return `${value.anomalies.length} anomalies`;
+  }
+  if (name === "inspect_deployments" && Array.isArray(value.deployments)) {
+    return `${value.deployments.length} deployment${value.deployments.length === 1 ? "" : "s"}`;
+  }
+  if (name === "inspect_commits" && Array.isArray(value.commits)) {
+    return `${value.commits.length} commit${value.commits.length === 1 ? "" : "s"}`;
+  }
+  if (name === "inspect_source_changes" && Array.isArray(value.files)) {
+    return `${value.files.length} source snapshot${value.files.length === 1 ? "" : "s"}`;
+  }
+  if (name === "correlate_change" && typeof value.confidence === "number") {
+    return `${value.confidence}% confidence`;
+  }
+  if (name === "synthesize_rca" && typeof value.confidence === "number") {
+    return `${value.confidence}% confidence`;
+  }
+  if (name === "prepare_mitigation" && value.execution === "draft-only") {
+    return "Draft only";
+  }
+  if (name === "prepare_remediation_work" && value.execution === "draft-only") {
+    return "Draft only";
   }
   if (name === "select_specialists" && Array.isArray(value.agents)) {
     return `${value.agents.length} specialist${value.agents.length === 1 ? "" : "s"}`;

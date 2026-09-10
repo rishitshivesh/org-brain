@@ -1,6 +1,6 @@
-import type { OrgBrainIntent } from "@/types/org-brain";
+import type { OrgBrainIntent, WorkItemDraft } from "@/types/org-brain";
 
-export type SpecialistAgentId = "work" | "observability";
+export type SpecialistAgentId = "work" | "observability" | "change";
 
 export interface AgentToolEvent {
   id: string;
@@ -9,11 +9,21 @@ export interface AgentToolEvent {
   output: unknown;
 }
 
+export interface AgentFinding {
+  id: string;
+  title: string;
+  description: string;
+  confidence?: number;
+  evidence: string[];
+  evidenceAgainst?: string[];
+}
+
 export interface SpecialistAgentResult {
   agent: SpecialistAgentId;
   summary: string;
   references: string[];
   tools: AgentToolEvent[];
+  findings?: AgentFinding[];
 }
 
 export interface OrchestrationPlan {
@@ -22,9 +32,21 @@ export interface OrchestrationPlan {
   reason: string;
 }
 
+export interface RcaSynthesis {
+  incidentId: string;
+  rootCause: string;
+  confidence: number;
+  evidence: string[];
+  evidenceAgainst: string[];
+  mitigation: string;
+  remediationDraft: WorkItemDraft;
+}
+
 export interface OrchestrationResult {
   plan: OrchestrationPlan;
   answer: string;
   references: string[];
   runs: SpecialistAgentResult[];
+  tools?: AgentToolEvent[];
+  rca?: RcaSynthesis;
 }

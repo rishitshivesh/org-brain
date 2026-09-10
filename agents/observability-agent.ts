@@ -41,6 +41,23 @@ export async function runObservabilityAgent(
   const bottleneck = slowest
     ? `${slowestService?.name ?? slowest.serviceId} · ${slowest.operation} (${slowest.durationMs} ms)`
     : "No trace bottleneck found";
+  const evidence = [
+    ...(slowest
+      ? [`${slowestService?.name ?? slowest.serviceId} spent ${slowest.durationMs} ms in ${slowest.operation}`]
+      : []),
+    ...anomalousMetrics.slice(0, 3).map(
+      (metric) =>
+        `${metric.metric} moved from ${metric.before}${metric.unit ?? ""} to ${metric.after}${metric.unit ?? ""} (${metric.change.toFixed(1)}×)`,
+    ),
+    ...warningLogs.slice(0, 2).map((log) => `${log.id}: ${log.message}`),
+  ];
+  const evidenceAgainst = context.metrics
+    .filter((metric) => metric.metric.includes("cpu") || metric.metric.includes("memory"))
+    .filter((metric) => ratio(metric.before, metric.after) < 1.5)
+    .map(
+      (metric) =>
+        `${metric.metric} stayed near baseline (${metric.before}${metric.unit ?? ""} → ${metric.after}${metric.unit ?? ""})`,
+    );
 
   return {
     agent: "observability",
@@ -48,6 +65,16 @@ export async function runObservabilityAgent(
       incident.id,
       ...context.traces.map((trace) => trace.id),
       ...warningLogs.map((log) => log.id),
+    ],
+    findings: [
+      {
+        id: `runtime-bottleneck-${incident.id}`,
+        title: `Runtime bottleneck in ${slowestService?.name ?? "trace path"}`,
+        description: bottleneck,
+        confidence: slowest ? 92 : 55,
+        evidence,
+        evidenceAgainst,
+      },
     ],
     tools: [
       {
@@ -89,7 +116,8 @@ export async function runObservabilityAgent(
       },
     ],
     summary: [
-      `### Observability Agent\n`,
+      "### Observability Agent",
+      "",
       `The strongest runtime bottleneck is **${bottleneck}**.`,
       "",
       anomalousMetrics.length
@@ -104,8 +132,13 @@ export async function runObservabilityAgent(
       warningLogs.length
         ? `I also found **${warningLogs.length} warning/error logs** on the correlated trace.`
         : "No warning/error logs were correlated to the trace.",
+      evidenceAgainst.length
+        ? `CPU/memory evidence does not support general resource saturation: ${evidenceAgainst.join(", ")}.`
+        : "",
       "",
-      "This localizes the runtime problem, but does not yet attribute it to a code change. That belongs to the Change Agent.",
-    ].join("\n"),
+      "This localizes the runtime problem. Source attribution is handled separately by the Change Agent.",
+    ]
+      .filter(Boolean)
+      .join("\n"),
   };
 }
