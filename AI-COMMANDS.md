@@ -92,6 +92,22 @@ This file keeps a small set of representative development commands used for impl
 
 > Make the Agent Elements Ask workspace use the Cloudflare investigation API when a runtime URL is configured, while preserving the local orchestrator as a development fallback. Show runtime/investigation state and do not mark approval complete until durable state confirms it.
 
+## Multi-scenario evidence packs
+
+> Expand Scenario Lab from one canonical latency case into three internally consistent production incidents. Add a database connection-pool regression and a retry-amplification cascade with their own incidents, traces, logs, metrics, deployments, commits, source snapshots and hidden evaluation truth. Keep every reference resolvable.
+
+## Generalized change correlation
+
+> Make Change Agent score more than one code smell. Detect sequential awaited work, undersized database-pool configuration and aggressive retry configuration from source snapshots, while preserving deployment timing and affected-service evidence.
+
+## Failure-mode RCA synthesis
+
+> Generate a different mitigation and remediation draft for sequential hot-path work, database capacity regression and retry amplification. Do not return the claims-worker remediation text for unrelated incidents.
+
+## Scenario-guided demo UX
+
+> Give each seeded Scenario Lab fixture a strong investigation prompt that can be copied into Ask. Keep the hidden answer key separate and make incident drill-down expose trace operations, log metadata, metric regressions, deployment context and suspect source code.
+
 ## Scenario review
 
-> Review the seeded incident end to end. Verify timestamps, trace IDs, service relationships, deployment versions, commit references and work-item links are internally consistent, and keep public scenario metadata separate from the evaluation answer key.
+> Review the seeded incidents end to end. Verify timestamps, trace IDs, service relationships, deployment versions, commit references and work-item links are internally consistent, and keep public scenario metadata separate from the evaluation answer key.
