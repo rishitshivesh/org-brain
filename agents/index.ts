@@ -9,4 +9,5 @@ export type {
   RcaSynthesis,
   SpecialistAgentId,
   SpecialistAgentResult,
+  WorkPackageDraft,
 } from "./types";
