@@ -135,11 +135,7 @@
       "state": "Active",
       "ownerTeamId": "TEAM-CLAIMS",
       "tags": ["claims", "modernization"],
-      "relatedServiceIds": [
-        "SVC-CLAIMS-WEB",
-        "SVC-CLAIMS-API",
-        "SVC-CLAIMS-WORKER"
-      ]
+      "relatedServiceIds": ["SVC-CLAIMS-WEB", "SVC-CLAIMS-API", "SVC-CLAIMS-WORKER"]
     },
     {
       "id": "ADO-3988",
@@ -161,11 +157,7 @@
       "ownerTeamId": "TEAM-CLAIMS",
       "description": "Move document categorization out of the synchronous submission path and process categorization asynchronously.",
       "tags": ["documents", "async"],
-      "relatedServiceIds": [
-        "SVC-CLAIMS-API",
-        "SVC-DOCUMENT",
-        "SVC-CLAIMS-WORKER"
-      ]
+      "relatedServiceIds": ["SVC-CLAIMS-API", "SVC-DOCUMENT", "SVC-CLAIMS-WORKER"]
     },
     {
       "id": "ADO-4217",
@@ -187,11 +179,7 @@
       "ownerTeamId": "TEAM-CLAIMS",
       "description": "Allow OPD claims to settle approved line items independently instead of requiring settlement of the entire approved amount.",
       "tags": ["opd", "settlement"],
-      "relatedServiceIds": [
-        "SVC-CLAIMS-WEB",
-        "SVC-CLAIMS-API",
-        "SVC-RULES"
-      ],
+      "relatedServiceIds": ["SVC-CLAIMS-WEB", "SVC-CLAIMS-API", "SVC-RULES"],
       "conflictsWith": ["ADO-3988"]
     },
     {
@@ -202,10 +190,7 @@
       "parentId": "ADO-4182",
       "ownerTeamId": "TEAM-CLAIMS",
       "description": "Validate required document categories while processing submitted claims.",
-      "relatedServiceIds": [
-        "SVC-CLAIMS-WORKER",
-        "SVC-DOCUMENT"
-      ]
+      "relatedServiceIds": ["SVC-CLAIMS-WORKER", "SVC-DOCUMENT"]
     },
     {
       "id": "ADO-4312",
@@ -214,10 +199,27 @@
       "state": "Investigating",
       "ownerTeamId": "TEAM-CLAIMS",
       "description": "Claims submission p95 increased after claims-worker v3.19.2 rollout.",
-      "relatedServiceIds": [
-        "SVC-CLAIMS-API",
-        "SVC-CLAIMS-WORKER"
-      ]
+      "relatedServiceIds": ["SVC-CLAIMS-API", "SVC-CLAIMS-WORKER"]
+    },
+    {
+      "id": "ADO-4340",
+      "type": "Bug",
+      "title": "Claims checkout timeouts under peak traffic",
+      "state": "Investigating",
+      "ownerTeamId": "TEAM-CLAIMS",
+      "description": "Claims API requests intermittently time out while database CPU remains healthy.",
+      "tags": ["database", "pool", "timeouts"],
+      "relatedServiceIds": ["SVC-CLAIMS-API"]
+    },
+    {
+      "id": "ADO-4357",
+      "type": "Bug",
+      "title": "Document dependency retry amplification",
+      "state": "Investigating",
+      "ownerTeamId": "TEAM-CLAIMS",
+      "description": "Claims API request volume spikes when document-service returns transient 5xx responses.",
+      "tags": ["retry", "resilience", "dependency"],
+      "relatedServiceIds": ["SVC-CLAIMS-API", "SVC-DOCUMENT"]
     }
   ],
   "commits": [
@@ -228,10 +230,7 @@
       "author": "Aarav Mehta",
       "timestamp": "2026-09-08T11:42:00Z",
       "workItemIds": ["ADO-4264"],
-      "changedFiles": [
-        "src/consumers/claim-submitted.consumer.ts",
-        "src/services/document-validation.service.ts"
-      ]
+      "changedFiles": ["src/consumers/claim-submitted.consumer.ts", "src/services/document-validation.service.ts"]
     },
     {
       "sha": "312ae84",
@@ -240,9 +239,25 @@
       "author": "Aarav Mehta",
       "timestamp": "2026-09-08T12:08:00Z",
       "workItemIds": ["ADO-4264"],
-      "changedFiles": [
-        "src/metrics/document-validation.metrics.ts"
-      ]
+      "changedFiles": ["src/metrics/document-validation.metrics.ts"]
+    },
+    {
+      "sha": "c41db71",
+      "repositoryId": "REPO-CLAIMS-API",
+      "message": "reduce db pool for lower idle connection usage",
+      "author": "Meera Nair",
+      "timestamp": "2026-09-09T08:38:00Z",
+      "workItemIds": ["ADO-4340"],
+      "changedFiles": ["src/config/database.config.ts"]
+    },
+    {
+      "sha": "a90ed31",
+      "repositoryId": "REPO-CLAIMS-API",
+      "message": "retry document validation on transient failures",
+      "author": "Kabir Shah",
+      "timestamp": "2026-09-10T05:21:00Z",
+      "workItemIds": ["ADO-4357"],
+      "changedFiles": ["src/clients/document.client.ts"]
     }
   ],
   "sourceSnapshots": [
@@ -257,6 +272,18 @@
       "commitSha": "8fc19b2",
       "path": "src/consumers/claim-submitted.consumer.ts",
       "content": "await this.documentValidationService.validateRequiredDocuments(claim.documents);\nawait this.claimProcessor.process(claim);"
+    },
+    {
+      "repositoryId": "REPO-CLAIMS-API",
+      "commitSha": "c41db71",
+      "path": "src/config/database.config.ts",
+      "content": "export const databaseConfig = {\n  pool: {\n    min: 2,\n    max: 6,\n    acquireTimeoutMs: 2000,\n  },\n};"
+    },
+    {
+      "repositoryId": "REPO-CLAIMS-API",
+      "commitSha": "a90ed31",
+      "path": "src/clients/document.client.ts",
+      "content": "return retry(() => this.http.post('/validate', payload), {\n  retries: 4,\n  minDelayMs: 0,\n  maxDelayMs: 50,\n});"
     }
   ],
   "deployments": [
@@ -277,6 +304,24 @@
       "commitShas": [],
       "status": "Succeeded",
       "deployedAt": "2026-09-05T09:18:00Z"
+    },
+    {
+      "id": "DEP-2214",
+      "serviceId": "SVC-CLAIMS-API",
+      "environment": "production",
+      "version": "v5.8.0",
+      "commitShas": ["c41db71"],
+      "status": "Succeeded",
+      "deployedAt": "2026-09-09T09:02:00Z"
+    },
+    {
+      "id": "DEP-2231",
+      "serviceId": "SVC-CLAIMS-API",
+      "environment": "production",
+      "version": "v5.8.1",
+      "commitShas": ["a90ed31"],
+      "status": "Succeeded",
+      "deployedAt": "2026-09-10T05:48:00Z"
     }
   ],
   "incidents": [
@@ -286,13 +331,32 @@
       "severity": "SEV2",
       "status": "Investigating",
       "startedAt": "2026-09-08T14:00:00Z",
-      "affectedServiceIds": [
-        "SVC-CLAIMS-API",
-        "SVC-CLAIMS-WORKER"
-      ],
+      "affectedServiceIds": ["SVC-CLAIMS-API", "SVC-CLAIMS-WORKER"],
       "traceIds": ["tr_8b92f17c"],
       "correlatedDeploymentIds": ["DEP-2198"],
       "workItemIds": ["ADO-4312"]
+    },
+    {
+      "id": "INC-2417",
+      "title": "Claims checkout requests timing out intermittently",
+      "severity": "SEV2",
+      "status": "Investigating",
+      "startedAt": "2026-09-09T09:21:00Z",
+      "affectedServiceIds": ["SVC-CLAIMS-API"],
+      "traceIds": ["tr_4cc71d02"],
+      "correlatedDeploymentIds": ["DEP-2214"],
+      "workItemIds": ["ADO-4340"]
+    },
+    {
+      "id": "INC-2424",
+      "title": "Document failures cascading through claims submission",
+      "severity": "SEV1",
+      "status": "Investigating",
+      "startedAt": "2026-09-10T06:03:00Z",
+      "affectedServiceIds": ["SVC-CLAIMS-API", "SVC-DOCUMENT"],
+      "traceIds": ["tr_92f4ad10"],
+      "correlatedDeploymentIds": ["DEP-2231"],
+      "workItemIds": ["ADO-4357"]
     }
   ],
   "traces": [
@@ -303,115 +367,68 @@
       "durationMs": 4178,
       "status": "error",
       "spans": [
-        {
-          "id": "sp_01",
-          "serviceId": "SVC-CLAIMS-WEB",
-          "operation": "submitClaim",
-          "durationMs": 4190,
-          "status": "error"
-        },
-        {
-          "id": "sp_02",
-          "parentSpanId": "sp_01",
-          "serviceId": "SVC-CLAIMS-API",
-          "operation": "POST /claims/submit",
-          "durationMs": 4135,
-          "status": "error"
-        },
-        {
-          "id": "sp_03",
-          "parentSpanId": "sp_02",
-          "serviceId": "SVC-RULES",
-          "operation": "evaluateClaimRules",
-          "durationMs": 71,
-          "status": "ok"
-        },
-        {
-          "id": "sp_04",
-          "parentSpanId": "sp_02",
-          "serviceId": "SVC-CLAIMS-WORKER",
-          "operation": "processClaim",
-          "durationMs": 3874,
-          "status": "error"
-        },
-        {
-          "id": "sp_05",
-          "parentSpanId": "sp_04",
-          "serviceId": "SVC-DOCUMENT",
-          "operation": "validateDocumentCategories",
-          "durationMs": 3412,
-          "status": "ok"
-        }
+        {"id": "sp_01", "serviceId": "SVC-CLAIMS-WEB", "operation": "submitClaim", "durationMs": 4190, "status": "error"},
+        {"id": "sp_02", "parentSpanId": "sp_01", "serviceId": "SVC-CLAIMS-API", "operation": "POST /claims/submit", "durationMs": 4135, "status": "error"},
+        {"id": "sp_03", "parentSpanId": "sp_02", "serviceId": "SVC-RULES", "operation": "evaluateClaimRules", "durationMs": 71, "status": "ok"},
+        {"id": "sp_04", "parentSpanId": "sp_02", "serviceId": "SVC-CLAIMS-WORKER", "operation": "processClaim", "durationMs": 3874, "status": "error"},
+        {"id": "sp_05", "parentSpanId": "sp_04", "serviceId": "SVC-DOCUMENT", "operation": "validateDocumentCategories", "durationMs": 3412, "status": "ok"}
+      ]
+    },
+    {
+      "id": "tr_4cc71d02",
+      "name": "POST /claims/checkout",
+      "startedAt": "2026-09-09T09:28:45.219Z",
+      "durationMs": 2388,
+      "status": "error",
+      "spans": [
+        {"id": "sp_db_01", "serviceId": "SVC-CLAIMS-WEB", "operation": "checkoutClaim", "durationMs": 2402, "status": "error"},
+        {"id": "sp_db_02", "parentSpanId": "sp_db_01", "serviceId": "SVC-CLAIMS-API", "operation": "POST /claims/checkout", "durationMs": 2361, "status": "error"},
+        {"id": "sp_db_03", "parentSpanId": "sp_db_02", "serviceId": "SVC-CLAIMS-API", "operation": "db.acquireConnection", "durationMs": 1987, "status": "error"},
+        {"id": "sp_db_04", "parentSpanId": "sp_db_02", "serviceId": "SVC-RULES", "operation": "evaluateSettlementRules", "durationMs": 58, "status": "ok"}
+      ]
+    },
+    {
+      "id": "tr_92f4ad10",
+      "name": "POST /claims/submit",
+      "startedAt": "2026-09-10T06:07:31.411Z",
+      "durationMs": 6821,
+      "status": "error",
+      "spans": [
+        {"id": "sp_retry_01", "serviceId": "SVC-CLAIMS-WEB", "operation": "submitClaim", "durationMs": 6840, "status": "error"},
+        {"id": "sp_retry_02", "parentSpanId": "sp_retry_01", "serviceId": "SVC-CLAIMS-API", "operation": "POST /claims/submit", "durationMs": 6794, "status": "error"},
+        {"id": "sp_retry_03", "parentSpanId": "sp_retry_02", "serviceId": "SVC-DOCUMENT", "operation": "validateDocuments attempt=1", "durationMs": 1190, "status": "error"},
+        {"id": "sp_retry_04", "parentSpanId": "sp_retry_02", "serviceId": "SVC-DOCUMENT", "operation": "validateDocuments attempt=2", "durationMs": 1216, "status": "error"},
+        {"id": "sp_retry_05", "parentSpanId": "sp_retry_02", "serviceId": "SVC-DOCUMENT", "operation": "validateDocuments attempt=3", "durationMs": 1270, "status": "error"},
+        {"id": "sp_retry_06", "parentSpanId": "sp_retry_02", "serviceId": "SVC-DOCUMENT", "operation": "validateDocuments attempt=4", "durationMs": 1302, "status": "error"},
+        {"id": "sp_retry_07", "parentSpanId": "sp_retry_02", "serviceId": "SVC-DOCUMENT", "operation": "validateDocuments attempt=5", "durationMs": 1330, "status": "error"}
       ]
     }
   ],
   "logs": [
-    {
-      "id": "LOG-01",
-      "timestamp": "2026-09-08T14:07:12.428Z",
-      "serviceId": "SVC-CLAIMS-API",
-      "level": "info",
-      "traceId": "tr_8b92f17c",
-      "message": "Claim submission accepted for asynchronous processing"
-    },
-    {
-      "id": "LOG-02",
-      "timestamp": "2026-09-08T14:07:12.691Z",
-      "serviceId": "SVC-CLAIMS-WORKER",
-      "level": "info",
-      "traceId": "tr_8b92f17c",
-      "message": "Starting required document validation for 4 documents"
-    },
-    {
-      "id": "LOG-03",
-      "timestamp": "2026-09-08T14:07:16.104Z",
-      "serviceId": "SVC-CLAIMS-WORKER",
-      "level": "warn",
-      "traceId": "tr_8b92f17c",
-      "message": "Document validation exceeded expected processing threshold",
-      "metadata": {
-        "durationMs": 3412,
-        "baselineMs": 180
-      }
-    },
-    {
-      "id": "LOG-04",
-      "timestamp": "2026-09-08T14:07:16.231Z",
-      "serviceId": "SVC-CLAIMS-WORKER",
-      "level": "error",
-      "traceId": "tr_8b92f17c",
-      "message": "Claim processing deadline exceeded"
-    }
+    {"id": "LOG-01", "timestamp": "2026-09-08T14:07:12.428Z", "serviceId": "SVC-CLAIMS-API", "level": "info", "traceId": "tr_8b92f17c", "message": "Claim submission accepted for asynchronous processing"},
+    {"id": "LOG-02", "timestamp": "2026-09-08T14:07:12.691Z", "serviceId": "SVC-CLAIMS-WORKER", "level": "info", "traceId": "tr_8b92f17c", "message": "Starting required document validation for 4 documents"},
+    {"id": "LOG-03", "timestamp": "2026-09-08T14:07:16.104Z", "serviceId": "SVC-CLAIMS-WORKER", "level": "warn", "traceId": "tr_8b92f17c", "message": "Document validation exceeded expected processing threshold", "metadata": {"durationMs": 3412, "baselineMs": 180}},
+    {"id": "LOG-04", "timestamp": "2026-09-08T14:07:16.231Z", "serviceId": "SVC-CLAIMS-WORKER", "level": "error", "traceId": "tr_8b92f17c", "message": "Claim processing deadline exceeded"},
+    {"id": "LOG-11", "timestamp": "2026-09-09T09:28:45.311Z", "serviceId": "SVC-CLAIMS-API", "level": "info", "traceId": "tr_4cc71d02", "message": "Checkout request entered settlement transaction"},
+    {"id": "LOG-12", "timestamp": "2026-09-09T09:28:47.298Z", "serviceId": "SVC-CLAIMS-API", "level": "warn", "traceId": "tr_4cc71d02", "message": "Database connection acquisition exceeded threshold", "metadata": {"durationMs": 1987, "poolActive": 6, "poolMax": 6, "poolPending": 31}},
+    {"id": "LOG-13", "timestamp": "2026-09-09T09:28:47.382Z", "serviceId": "SVC-CLAIMS-API", "level": "error", "traceId": "tr_4cc71d02", "message": "Checkout transaction aborted after database acquire timeout"},
+    {"id": "LOG-21", "timestamp": "2026-09-10T06:07:31.702Z", "serviceId": "SVC-CLAIMS-API", "level": "warn", "traceId": "tr_92f4ad10", "message": "document-service returned 503; retrying validation"},
+    {"id": "LOG-22", "timestamp": "2026-09-10T06:07:36.960Z", "serviceId": "SVC-CLAIMS-API", "level": "warn", "traceId": "tr_92f4ad10", "message": "Document validation exhausted retry budget", "metadata": {"attempts": 5, "delayBudgetMs": 50}},
+    {"id": "LOG-23", "timestamp": "2026-09-10T06:07:38.201Z", "serviceId": "SVC-DOCUMENT", "level": "error", "traceId": "tr_92f4ad10", "message": "Inbound validation traffic exceeded normal peak after repeated upstream attempts", "metadata": {"requestsPerSecond": 1840, "baselineRequestsPerSecond": 390}}
   ],
   "metrics": [
-    {
-      "serviceId": "SVC-CLAIMS-WORKER",
-      "metric": "consumer_processing_ms",
-      "before": 42,
-      "after": 890,
-      "unit": "ms"
-    },
-    {
-      "serviceId": "SVC-CLAIMS-WORKER",
-      "metric": "consumer_lag",
-      "before": 4200,
-      "after": 91000,
-      "unit": "messages"
-    },
-    {
-      "serviceId": "SVC-CLAIMS-WORKER",
-      "metric": "cpu_percent",
-      "before": 41,
-      "after": 43,
-      "unit": "%"
-    },
-    {
-      "serviceId": "SVC-CLAIMS-WORKER",
-      "metric": "memory_percent",
-      "before": 56,
-      "after": 58,
-      "unit": "%"
-    }
+    {"serviceId": "SVC-CLAIMS-WORKER", "metric": "consumer_processing_ms", "before": 42, "after": 890, "unit": "ms"},
+    {"serviceId": "SVC-CLAIMS-WORKER", "metric": "consumer_lag", "before": 4200, "after": 91000, "unit": "messages"},
+    {"serviceId": "SVC-CLAIMS-WORKER", "metric": "cpu_percent", "before": 41, "after": 43, "unit": "%"},
+    {"serviceId": "SVC-CLAIMS-WORKER", "metric": "memory_percent", "before": 56, "after": 58, "unit": "%"},
+    {"serviceId": "SVC-CLAIMS-API", "metric": "db_pool_max", "before": 24, "after": 6, "unit": "connections"},
+    {"serviceId": "SVC-CLAIMS-API", "metric": "db_pool_pending", "before": 1, "after": 31, "unit": "requests"},
+    {"serviceId": "SVC-CLAIMS-API", "metric": "checkout_p95_ms", "before": 312, "after": 2260, "unit": "ms"},
+    {"serviceId": "SVC-CLAIMS-API", "metric": "cpu_percent", "before": 47, "after": 49, "unit": "%"},
+    {"serviceId": "SVC-CLAIMS-API", "metric": "document_requests_per_claim", "before": 1.1, "after": 4.7, "unit": "requests"},
+    {"serviceId": "SVC-CLAIMS-API", "metric": "submit_p95_ms", "before": 420, "after": 6450, "unit": "ms"},
+    {"serviceId": "SVC-DOCUMENT", "metric": "requests_per_second", "before": 390, "after": 1840, "unit": "rps"},
+    {"serviceId": "SVC-DOCUMENT", "metric": "error_rate_percent", "before": 0.8, "after": 18.6, "unit": "%"}
   ],
   "architectureDecisions": [
     {
@@ -419,10 +436,7 @@
       "title": "Settlement state remains centralized in claims-api",
       "status": "Accepted",
       "summary": "Settlement lifecycle state must be owned by claims-api. Rules-engine determines eligibility but must not create an independent settlement lifecycle.",
-      "relatedServiceIds": [
-        "SVC-CLAIMS-API",
-        "SVC-RULES"
-      ],
+      "relatedServiceIds": ["SVC-CLAIMS-API", "SVC-RULES"],
       "relatedWorkItemIds": ["ADO-3988"]
     },
     {
@@ -430,12 +444,16 @@
       "title": "Document categorization runs asynchronously",
       "status": "Accepted",
       "summary": "Document categorization and downstream validation should not block the synchronous claim submission request.",
-      "relatedServiceIds": [
-        "SVC-CLAIMS-API",
-        "SVC-CLAIMS-WORKER",
-        "SVC-DOCUMENT"
-      ],
+      "relatedServiceIds": ["SVC-CLAIMS-API", "SVC-CLAIMS-WORKER", "SVC-DOCUMENT"],
       "relatedWorkItemIds": ["ADO-4182", "ADO-4217"]
+    },
+    {
+      "id": "ADR-031",
+      "title": "Retries must use bounded exponential backoff",
+      "status": "Accepted",
+      "summary": "Synchronous service-to-service retries must be bounded, use exponential backoff with jitter, and stop before consuming the caller latency budget.",
+      "relatedServiceIds": ["SVC-CLAIMS-API", "SVC-DOCUMENT"],
+      "relatedWorkItemIds": ["ADO-4357"]
     }
   ]
 }
