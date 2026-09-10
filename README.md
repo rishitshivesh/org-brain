@@ -6,11 +6,11 @@ The project is deliberately programmatic first. Entity relationships are resolve
 
 ## Current milestone
 
-The frontend, mock provider layer and deterministic organization-context builders are in place. Agent orchestration is intentionally not connected yet.
+The frontend, mock provider layer, deterministic context builders and the first bounded specialist agents are in place. Cloudflare runtime orchestration is not connected yet.
 
 Available surfaces:
 
-- `/` — Agent Elements-based Ask workspace with deterministic organization queries
+- `/` — Agent Elements-based Ask workspace with deterministic orchestration
 - `/work` — Azure DevOps-style work intelligence, filtering and conflict visibility
 - `/incidents` — operational incidents linked to traces and deployments
 - `/services` — service catalog with ownership, repositories and dependencies
@@ -24,47 +24,29 @@ Detail routes currently include work items, incidents and services.
 
 The current frontend is backed by `data/seed/org-brain.seed.json` and the extensible types in `types/org-brain.ts`.
 
-The seed contains a coherent engineering slice across:
-
-- teams
-- repositories
-- services and dependencies
-- Azure DevOps-style work items
-- commits and source snapshots
-- deployments
-- incidents
-- traces and logs
-- metrics
-- architecture decisions
+The seed contains a coherent engineering slice across teams, repositories, services, work items, commits, deployments, incidents, traces, logs, metrics and architecture decisions.
 
 ## Provider layer
 
-Mock data is exposed through provider contracts under `providers/` rather than consumed directly by the context layer.
+Mock data is exposed through provider contracts under `providers/` rather than consumed directly by the agent layer.
 
-Current providers cover:
-
-- work items
-- repositories and source snapshots
-- services and dependencies
-- deployments
-- incidents
-- observability
-- architecture decisions
-
-Future Azure DevOps, GitHub, Elastic and ClickHouse adapters can replace these mock implementations without changing context-builder APIs.
+Future Azure DevOps, GitHub, Elastic and ClickHouse adapters can replace the mock implementations without changing context-builder or specialist-agent APIs.
 
 ## Deterministic context
 
-`lib/context-builders.ts` assembles bounded contexts for:
+`lib/context-builders.ts` assembles bounded contexts for work planning, service analysis, deployment/change analysis and incident investigation.
 
-- work planning
-- service analysis
-- deployment/change analysis
-- incident investigation
+The incident builder resolves traces, participating services, deployments, commits, linked work, logs, metrics and architecture decisions. It deliberately keeps context assembly separate from specialist analysis.
 
-The incident builder resolves traces, participating services, deployments, commits, linked work, logs, metrics and architecture decisions. It deliberately does not infer the final RCA.
+## Specialist agents
 
-`lib/query-resolver.ts` proves this layer from the Ask page with a few deterministic questions before an LLM is introduced.
+The first local specialist layer lives under `agents/`.
+
+- **Work Agent** resolves related work, impacted services, requirement conflicts and architecture constraints.
+- **Observability Agent** analyzes traces, warning/error logs and metric regressions to localize runtime bottlenecks.
+- **Orchestrator** selects at most two specialists for a query and falls back to the deterministic query resolver when no specialist is needed.
+
+The Observability Agent intentionally stops before attributing a runtime issue to source code. Deployment and commit attribution will belong to the Change Agent.
 
 ## Scenario model
 
@@ -72,9 +54,7 @@ Public scenario metadata lives separately from scenario evaluation data. The Sce
 
 ## Agent UI
 
-The repository includes the full Agent Elements chat surface from 21st.dev. The Ask page uses the real `AgentChat`, message rendering and prompt suggestions.
-
-The same surface will later host specialist-agent tool cards, streaming states, questions and approval flows.
+The repository includes the full Agent Elements chat surface from 21st.dev. The Ask page uses the real `AgentChat`, message rendering, suggestions and custom tool renderers for specialist activity.
 
 ## Development
 
@@ -94,4 +74,4 @@ yarn build
 
 ## Next milestone
 
-The next phase introduces the orchestrator and bounded specialist agents over these deterministic contexts, followed by Cloudflare Workflows, Workers AI, Durable Objects and Vectorize-backed organization memory.
+The next phase adds the Change Agent and cross-agent synthesis, then moves orchestration onto Cloudflare Workflows and Workers AI with Durable Objects and Vectorize-backed organization memory.
