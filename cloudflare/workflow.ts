@@ -12,7 +12,9 @@ import type {
 } from "../types/investigation";
 import { groundAnswerWithWorkersAi } from "./ai";
 import type { Env } from "./env";
-import { patchInvestigation } from "./state-client";
+import { indexInvestigationMemory } from "./memory";
+import { persistInvestigation } from "./persistence";
+import { patchInvestigation, readInvestigation } from "./state-client";
 
 export interface InvestigationWorkflowPayload {
   investigationId: string;
@@ -54,13 +56,23 @@ export class InvestigationWorkflow extends WorkflowEntrypoint<
         answer: grounded.answer,
       };
 
-      await step.do("persist investigation result", () =>
+      const investigation = await step.do("persist investigation result", () =>
         patchInvestigation(this.env, investigationId, {
           result,
           ai: grounded.metadata,
           status: result.rca ? "waiting-approval" : "completed",
         }),
       );
+
+      await step.do("archive investigation history", () =>
+        persistInvestigation(this.env, investigation),
+      );
+
+      if (result.rca) {
+        await step.do("index investigation memory", () =>
+          indexInvestigationMemory(this.env, investigation),
+        );
+      }
 
       if (!result.rca) return;
 
@@ -93,21 +105,30 @@ export class InvestigationWorkflow extends WorkflowEntrypoint<
         status: "completed",
       };
 
-      await step.do("record durable approval", () =>
+      const completed = await step.do("record durable approval", () =>
         patchInvestigation(this.env, investigationId, finalPatch),
       );
 
+      await step.do("archive approved investigation", () =>
+        persistInvestigation(this.env, completed),
+      );
+
       if (approval.actions.includes("remediation")) {
-        await step.do("prepare remediation provider handoff", () =>
-          orgBrainProviders.workItems.createDraft(result.rca!.remediationDraft),
-        );
+        await step.do("prepare remediation provider handoff", async () => {
+          const latest = await readInvestigation(this.env, investigationId);
+          const draft = latest?.result?.rca?.remediationDraft ?? result.rca!.remediationDraft;
+          return orgBrainProviders.workItems.createDraft(draft);
+        });
       }
     } catch (error) {
-      await step.do("record investigation failure", () =>
+      const failed = await step.do("record investigation failure", () =>
         patchInvestigation(this.env, investigationId, {
           status: "failed",
           error: errorMessage(error),
         }),
+      );
+      await step.do("archive failed investigation", () =>
+        persistInvestigation(this.env, failed),
       );
       throw error;
     }
