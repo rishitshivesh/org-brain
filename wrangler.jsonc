@@ -1,0 +1,38 @@
+{
+  "name": "org-brain-api",
+  "main": "cloudflare/index.ts",
+  "compatibility_date": "2026-09-10",
+  "ai": {
+    "binding": "AI"
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "INVESTIGATIONS",
+        "class_name": "InvestigationStateObject"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["InvestigationStateObject"]
+    }
+  ],
+  "workflows": [
+    {
+      "name": "org-brain-investigation",
+      "binding": "INVESTIGATION_WORKFLOW",
+      "class_name": "InvestigationWorkflow"
+    }
+  ],
+  "vars": {
+    "AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    "AI_GATEWAY_ID": "default",
+    "ALLOWED_ORIGIN": "http://localhost:3000"
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}
