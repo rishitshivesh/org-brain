@@ -12,7 +12,10 @@ import type {
 } from "../types/investigation";
 import { groundAnswerWithWorkersAi } from "./ai";
 import type { Env } from "./env";
-import { indexInvestigationMemory } from "./memory";
+import {
+  indexInvestigationMemory,
+  searchInvestigationMemory,
+} from "./memory";
 import { persistInvestigation } from "./persistence";
 import { patchInvestigation, readInvestigation } from "./state-client";
 
@@ -47,12 +50,37 @@ export class InvestigationWorkflow extends WorkflowEntrypoint<
         () => runOrchestrator(orgBrainProviders, query),
       );
 
+      const historicalMemory = await step.do(
+        "search historical investigation memory",
+        () => searchInvestigationMemory(this.env, query, 4),
+      );
+
       const grounded = await step.do("synthesize with Workers AI", () =>
-        groundAnswerWithWorkersAi(this.env, query, deterministicResult),
+        groundAnswerWithWorkersAi(
+          this.env,
+          query,
+          deterministicResult,
+          historicalMemory,
+        ),
       );
 
       const result = {
         ...deterministicResult,
+        tools: [
+          ...(deterministicResult.tools ?? []),
+          {
+            id: `memory-${investigationId}`,
+            name: "search_incident_memory",
+            input: { query },
+            output: {
+              matches: historicalMemory.map((match) => ({
+                incidentId: match.incidentId,
+                score: match.score,
+                source: match.source,
+              })),
+            },
+          },
+        ],
         answer: grounded.answer,
       };
 
@@ -116,7 +144,9 @@ export class InvestigationWorkflow extends WorkflowEntrypoint<
       if (approval.actions.includes("remediation")) {
         await step.do("prepare remediation provider handoff", async () => {
           const latest = await readInvestigation(this.env, investigationId);
-          const draft = latest?.result?.rca?.remediationDraft ?? result.rca!.remediationDraft;
+          const draft =
+            latest?.result?.rca?.remediationDraft ??
+            result.rca!.remediationDraft;
           return orgBrainProviders.workItems.createDraft(draft);
         });
       }
