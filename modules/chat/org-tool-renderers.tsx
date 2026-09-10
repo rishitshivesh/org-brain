@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Activity,
   BookOpenCheck,
+  Brain,
   CheckCircle2,
   Cloud,
   FileCode2,
@@ -21,6 +22,10 @@ const toolMeta = {
   start_investigation_workflow: {
     label: "Started durable investigation",
     icon: Cloud,
+  },
+  search_incident_memory: {
+    label: "Searched investigation memory",
+    icon: Brain,
   },
   search_work_items: { label: "Searched work items", icon: Search },
   resolve_work_impact: { label: "Resolved work impact", icon: Network },
@@ -67,6 +72,10 @@ function outputSummary(name: string, output: unknown): string {
     typeof value.state === "string"
   )
     return value.state.replaceAll("-", " ");
+  if (name === "search_incident_memory" && Array.isArray(value.matches))
+    return value.matches.length
+      ? `${value.matches.length} prior investigation${value.matches.length === 1 ? "" : "s"}`
+      : "No prior match";
   if (name === "search_work_items" && typeof value.matched === "string")
     return value.matched;
   if (name === "resolve_work_impact" && Array.isArray(value.services))
