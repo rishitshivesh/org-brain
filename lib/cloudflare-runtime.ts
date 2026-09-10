@@ -1,4 +1,5 @@
 import type { ApprovalAction, OrchestrationResult } from "@/agents";
+import type { WorkItemDraft } from "@/types/org-brain";
 import type {
   InvestigationResponse,
   InvestigationState,
@@ -10,6 +11,28 @@ const apiBaseUrl = configuredBaseUrl?.replace(/\/$/, "");
 const pollIntervalMs = 650;
 const resultTimeoutMs = 60_000;
 const approvalTimeoutMs = 20_000;
+
+export interface RemoteHistoryItem {
+  id: string;
+  query: string;
+  incidentId: string | null;
+  status: InvestigationState["status"];
+  rootCause: string | null;
+  confidence: number | null;
+  mitigation: string | null;
+  remediationTitle: string | null;
+  approvalStatus: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RemoteMemoryMatch {
+  id: string;
+  score: number;
+  incidentId?: string;
+  rootCause?: string;
+  mitigation?: string;
+}
 
 function endpoint(path: string): string {
   if (!apiBaseUrl) throw new Error("Cloudflare runtime is not configured");
@@ -112,6 +135,38 @@ export async function runRemoteInvestigation(query: string): Promise<{
     investigation,
     result: investigation.result,
   };
+}
+
+export async function updateRemoteRemediation(
+  investigationId: string,
+  remediationDraft: WorkItemDraft,
+): Promise<InvestigationState> {
+  const response = await requestJson<InvestigationResponse>(
+    endpoint(
+      `/v1/investigations/${encodeURIComponent(investigationId)}/remediation`,
+    ),
+    {
+      method: "PATCH",
+      body: JSON.stringify({ remediationDraft }),
+    },
+  );
+  return response.investigation;
+}
+
+export async function getRemoteHistory(limit = 30): Promise<RemoteHistoryItem[]> {
+  const response = await requestJson<{ history: RemoteHistoryItem[] }>(
+    endpoint(`/v1/history?limit=${Math.max(1, Math.min(100, limit))}`),
+  );
+  return response.history;
+}
+
+export async function searchRemoteMemory(
+  query: string,
+): Promise<RemoteMemoryMatch[]> {
+  const response = await requestJson<{ matches: RemoteMemoryMatch[] }>(
+    endpoint(`/v1/memory/search?q=${encodeURIComponent(query)}`),
+  );
+  return response.matches;
 }
 
 export async function approveRemoteInvestigation(
