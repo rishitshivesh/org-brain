@@ -4,6 +4,7 @@ out
 .env
 .env.local
 .env.*.local
+.wrangler
 .idea
 .yarn/install-state.gz
 .DS_Store

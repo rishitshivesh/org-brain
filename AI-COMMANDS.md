@@ -76,6 +76,22 @@ This file keeps a small set of representative development commands used for impl
 
 > Improve Scenario Lab so fixture injection has visible state change and motion while keeping the hidden evaluation answer key outside the client path.
 
+## Cloudflare investigation runtime
+
+> Move the investigation boundary onto Cloudflare without rewriting the existing providers or specialist contracts. Add a Worker API, a durable per-investigation state holder, and a Workflow that runs deterministic context resolution before any model synthesis.
+
+## Workers AI grounding
+
+> Use Llama 3.3 on Workers AI only as a grounded synthesis layer over structured specialist findings. Route inference through AI Gateway, keep temperature low, skip response caching for incident synthesis, and fall back to the deterministic answer if inference fails.
+
+## Durable approval resume
+
+> Pause RCA investigations inside the Cloudflare Workflow until an explicit approval event arrives. Resume the same workflow instance after approval, persist the final decision, and keep mitigation/remediation handoff eligibility separate from external execution.
+
+## Remote Ask integration
+
+> Make the Agent Elements Ask workspace use the Cloudflare investigation API when a runtime URL is configured, while preserving the local orchestrator as a development fallback. Show runtime/investigation state and do not mark approval complete until durable state confirms it.
+
 ## Scenario review
 
 > Review the seeded incident end to end. Verify timestamps, trace IDs, service relationships, deployment versions, commit references and work-item links are internally consistent, and keep public scenario metadata separate from the evaluation answer key.

@@ -9,7 +9,10 @@
     "start": "next start",
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "cf:types": "yarn dlx wrangler@latest types",
+    "cf:dev": "yarn dlx wrangler@latest dev",
+    "cf:deploy": "yarn dlx wrangler@latest deploy"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
