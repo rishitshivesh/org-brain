@@ -28,6 +28,18 @@ This file keeps a small set of representative development commands used for impl
 
 > Use the installed Agent Elements AgentChat as the main Ask surface. Keep it on deterministic preview data for now, but structure the page so tool cards, streaming states and agent activity can be connected later without replacing the chat UI.
 
+## Provider abstraction
+
+> Put the mock organization data behind provider contracts for work items, services, repositories, deployments, incidents, observability and architecture. Keep context-building code independent of the mock JSON source.
+
+## Deterministic context builder
+
+> Build bounded work, service, deployment and incident contexts by traversing explicit entity relationships. Do not infer an RCA or architecture recommendation inside the context builder.
+
+## Deterministic Ask queries
+
+> Make a small set of Ask prompts work without an LLM. Resolve work-item conflicts, service dependencies, incident trace/deployment/commit context and deployment changes, then clearly stop before agent reasoning would begin.
+
 ## Scenario review
 
-> Review the seeded incident end to end. Verify timestamps, trace IDs, service relationships, deployment versions, commit references and work-item links are internally consistent, and make the Scenario Lab expose symptoms rather than the hidden RCA.
+> Review the seeded incident end to end. Verify timestamps, trace IDs, service relationships, deployment versions, commit references and work-item links are internally consistent, and keep public scenario metadata separate from the evaluation answer key.
