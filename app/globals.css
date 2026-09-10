@@ -120,11 +120,202 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
+  }
+
+  html,
   body {
-    @apply bg-background text-foreground;
-    }
+    height: 100%;
+  }
+
   html {
     @apply font-sans;
-    }
+    background: var(--background);
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    min-height: 100svh;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--foreground) 14%, transparent);
+  }
+}
+
+@layer utilities {
+  .portal-main {
+    height: calc(100svh - 3.5rem);
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    scroll-behavior: smooth;
+  }
+
+  .portal-scroll,
+  .portal-scroll-x {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--foreground) 16%, transparent) transparent;
+  }
+
+  .portal-scroll::-webkit-scrollbar,
+  .portal-scroll-x::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+
+  .portal-scroll::-webkit-scrollbar-track,
+  .portal-scroll-x::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .portal-scroll::-webkit-scrollbar-thumb,
+  .portal-scroll-x::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--foreground) 18%, transparent);
+    background-clip: padding-box;
+  }
+
+  .portal-scroll::-webkit-scrollbar-thumb:hover,
+  .portal-scroll-x::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklab, var(--foreground) 30%, transparent);
+    background-clip: padding-box;
+  }
+
+  .portal-page {
+    position: relative;
+    animation: portal-page-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .portal-route-progress {
+    animation: portal-route-progress 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .portal-header {
+    background:
+      linear-gradient(180deg, color-mix(in oklab, var(--background) 94%, transparent), transparent),
+      radial-gradient(circle at 12% -20%, color-mix(in oklab, var(--foreground) 5%, transparent), transparent 35%);
+  }
+
+  .portal-grid > * {
+    animation: portal-item-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .portal-grid > *:nth-child(2) { animation-delay: 35ms; }
+  .portal-grid > *:nth-child(3) { animation-delay: 70ms; }
+  .portal-grid > *:nth-child(4) { animation-delay: 105ms; }
+  .portal-grid > *:nth-child(5) { animation-delay: 140ms; }
+  .portal-grid > *:nth-child(6) { animation-delay: 175ms; }
+  .portal-grid > *:nth-child(n + 7) { animation-delay: 210ms; }
+
+  .portal-card-hover {
+    transition:
+      transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 260ms ease,
+      background-color 260ms ease,
+      border-color 260ms ease,
+      opacity 260ms ease;
+  }
+
+  .portal-card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px -24px color-mix(in oklab, var(--foreground) 32%, transparent);
+  }
+
+  .portal-soft-panel {
+    background: color-mix(in oklab, var(--card) 86%, transparent);
+    backdrop-filter: blur(12px);
+  }
+
+  .portal-fade-edge {
+    mask-image: linear-gradient(to bottom, transparent 0, black 16px, black calc(100% - 16px), transparent 100%);
+  }
+
+  .portal-orb {
+    position: absolute;
+    width: 38rem;
+    height: 38rem;
+    border-radius: 999px;
+    filter: blur(90px);
+    opacity: 0.07;
+    animation: portal-drift 18s ease-in-out infinite alternate;
+  }
+
+  .portal-orb-one {
+    left: -16rem;
+    top: -14rem;
+    background: oklch(0.68 0.12 250);
+  }
+
+  .portal-orb-two {
+    bottom: -20rem;
+    right: -15rem;
+    background: oklch(0.72 0.11 160);
+    animation-delay: -8s;
+  }
+
+  .portal-grid-noise {
+    background-image:
+      linear-gradient(to right, color-mix(in oklab, var(--foreground) 30%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 30%, transparent) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: radial-gradient(circle at center, black, transparent 72%);
+  }
+}
+
+@keyframes portal-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(7px) scale(0.997);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes portal-route-progress {
+  0% { transform: scaleX(0); opacity: 0; }
+  12% { opacity: 1; }
+  72% { transform: scaleX(0.78); opacity: 0.7; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+
+@keyframes portal-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes portal-drift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(5rem, 3rem, 0) scale(1.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+
+  .portal-page,
+  .portal-route-progress,
+  .portal-grid > *,
+  .portal-orb {
+    animation: none !important;
+  }
+
+  .portal-card-hover,
+  .portal-card-hover:hover {
+    transform: none !important;
+    transition-duration: 0.01ms !important;
+  }
 }

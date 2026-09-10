@@ -29,20 +29,16 @@ export function DataTable<TData extends RowData>({
   });
 
   return (
-    <div className="overflow-hidden rounded-md border">
-      <Table>
-        <TableHeader>
+    <div className="portal-scroll max-h-[min(62svh,760px)] overflow-auto rounded-lg border bg-card/80">
+      <Table className="min-w-[820px]">
+        <TableHeader className="sticky top-0 z-10 bg-card/95 shadow-[0_1px_0_0_var(--border)] backdrop-blur">
           {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => {
-                return (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder ? null : (
-                      <table.FlexRender header={header} />
-                    )}
-                  </TableHead>
-                );
-              })}
+            <TableRow key={headerGroup.id} className="hover:bg-transparent">
+              {headerGroup.headers.map((header) => (
+                <TableHead key={header.id} className="h-10 whitespace-nowrap text-xs">
+                  {header.isPlaceholder ? null : <table.FlexRender header={header} />}
+                </TableHead>
+              ))}
             </TableRow>
           ))}
         </TableHeader>
@@ -52,9 +48,10 @@ export function DataTable<TData extends RowData>({
               <TableRow
                 key={row.id}
                 data-state={row.getIsSelected() && "selected"}
+                className="transition-colors duration-150"
               >
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
+                  <TableCell key={cell.id} className="py-3">
                     <table.FlexRender cell={cell} />
                   </TableCell>
                 ))}
@@ -62,7 +59,7 @@ export function DataTable<TData extends RowData>({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center">
+              <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
                 No results.
               </TableCell>
             </TableRow>
