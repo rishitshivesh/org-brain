@@ -6,6 +6,7 @@ import type {
   InvestigationResponse,
   InvestigationState,
 } from "../types/investigation";
+import { listProviderHandoffs } from "./d1-providers";
 import type { Env } from "./env";
 import { InvestigationStateObject } from "./investigation-state";
 import { searchInvestigationMemory } from "./memory";
@@ -241,7 +242,8 @@ export default {
         workflow: "org-brain-investigation",
         durableState: "InvestigationStateObject",
         persistence: env.DB ? "d1" : "durable-object-only",
-        memory: env.MEMORY ? "vectorize" : "not-bound",
+        organizationProviders: env.DB ? "d1" : "seed-fallback",
+        memory: env.MEMORY ? "vectorize" : env.DB ? "d1-fallback" : "not-bound",
       });
     }
 
@@ -255,13 +257,22 @@ export default {
       });
     }
 
+    if (request.method === "GET" && url.pathname === "/v1/handoffs") {
+      const handoffs = await listProviderHandoffs(env);
+      return json(env, request, {
+        runtime: "cloudflare",
+        persistence: env.DB ? "d1" : "not-bound",
+        handoffs,
+      });
+    }
+
     if (request.method === "GET" && url.pathname === "/v1/memory/search") {
       const query = url.searchParams.get("q")?.trim();
       if (!query) return json(env, request, { error: "q is required" }, 400);
       const matches = await searchInvestigationMemory(env, query);
       return json(env, request, {
         runtime: "cloudflare",
-        memory: env.MEMORY ? "vectorize" : "not-bound",
+        memory: env.MEMORY ? "vectorize" : env.DB ? "d1-fallback" : "not-bound",
         matches,
       });
     }
