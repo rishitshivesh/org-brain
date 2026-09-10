@@ -15,6 +15,35 @@ export interface InvestigationHistoryRecord {
   updatedAt: string;
 }
 
+let schemaReady = false;
+
+async function ensureSchema(env: Env): Promise<void> {
+  if (!env.DB || schemaReady) return;
+  await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS investigations (
+      id TEXT PRIMARY KEY,
+      query TEXT NOT NULL,
+      incident_id TEXT,
+      status TEXT NOT NULL,
+      root_cause TEXT,
+      confidence INTEGER,
+      mitigation TEXT,
+      remediation_title TEXT,
+      remediation_json TEXT,
+      approval_status TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )`,
+  ).run();
+  await env.DB.prepare(
+    "CREATE INDEX IF NOT EXISTS idx_investigations_updated_at ON investigations(updated_at DESC)",
+  ).run();
+  await env.DB.prepare(
+    "CREATE INDEX IF NOT EXISTS idx_investigations_incident_id ON investigations(incident_id)",
+  ).run();
+  schemaReady = true;
+}
+
 function rowToHistory(row: Record<string, unknown>): InvestigationHistoryRecord {
   return {
     id: String(row.id),
@@ -38,6 +67,7 @@ export async function persistInvestigation(
   investigation: InvestigationState,
 ): Promise<boolean> {
   if (!env.DB) return false;
+  await ensureSchema(env);
 
   const rca = investigation.result?.rca;
   await env.DB.prepare(
@@ -79,6 +109,7 @@ export async function listInvestigationHistory(
   limit = 30,
 ): Promise<InvestigationHistoryRecord[]> {
   if (!env.DB) return [];
+  await ensureSchema(env);
   const safeLimit = Math.max(1, Math.min(100, Math.floor(limit)));
   const result = await env.DB.prepare(
     `SELECT id, query, incident_id, status, root_cause, confidence, mitigation,
@@ -92,12 +123,35 @@ export async function listInvestigationHistory(
   return result.results.map(rowToHistory);
 }
 
+export async function searchPersistedHistory(
+  env: Env,
+  query: string,
+  limit = 5,
+): Promise<InvestigationHistoryRecord[]> {
+  if (!env.DB) return [];
+  await ensureSchema(env);
+  const clean = query.toLowerCase().replace(/[%_]/g, "").trim();
+  const like = `%${clean}%`;
+  const result = await env.DB.prepare(
+    `SELECT id, query, incident_id, status, root_cause, confidence, mitigation,
+      remediation_title, approval_status, created_at, updated_at
+     FROM investigations
+     WHERE lower(query) LIKE ? OR lower(root_cause) LIKE ? OR lower(remediation_title) LIKE ?
+     ORDER BY updated_at DESC
+     LIMIT ?`,
+  )
+    .bind(like, like, like, Math.max(1, Math.min(10, limit)))
+    .all<Record<string, unknown>>();
+  return result.results.map(rowToHistory);
+}
+
 export async function updatePersistedRemediation(
   env: Env,
   investigationId: string,
   draft: unknown,
 ): Promise<void> {
   if (!env.DB) return;
+  await ensureSchema(env);
   const title =
     typeof draft === "object" && draft && "title" in draft
       ? String((draft as { title?: unknown }).title ?? "")
