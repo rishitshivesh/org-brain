@@ -11,6 +11,10 @@ import type {
   InvestigationState,
 } from "../types/investigation";
 import { groundAnswerWithWorkersAi } from "./ai";
+import {
+  createD1OrgProviders,
+  ensureD1OrganizationData,
+} from "./d1-providers";
 import type { Env } from "./env";
 import {
   indexInvestigationMemory,
@@ -45,9 +49,16 @@ export class InvestigationWorkflow extends WorkflowEntrypoint<
     );
 
     try {
+      const d1Ready = await step.do("prepare organization data", () =>
+        ensureD1OrganizationData(this.env),
+      );
+      const providers = d1Ready
+        ? createD1OrgProviders(this.env)
+        : orgBrainProviders;
+
       const deterministicResult = await step.do(
         "resolve deterministic engineering context",
-        () => runOrchestrator(orgBrainProviders, query),
+        () => runOrchestrator(providers, query),
       );
 
       const historicalMemory = await step.do(
@@ -147,7 +158,7 @@ export class InvestigationWorkflow extends WorkflowEntrypoint<
           const draft =
             latest?.result?.rca?.remediationDraft ??
             result.rca!.remediationDraft;
-          return orgBrainProviders.workItems.createDraft(draft);
+          return providers.workItems.createDraft(draft);
         });
       }
     } catch (error) {
