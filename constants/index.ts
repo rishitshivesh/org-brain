@@ -1,4 +1,5 @@
 import {
+  Activity,
   BookOpenCheck,
   Cable,
   Code2,
@@ -20,6 +21,7 @@ export const APP_ROUTES = {
   scenarioLab: "/scenario-lab",
   evaluations: "/evaluations",
   architecture: "/architecture",
+  runtime: "/runtime",
 } as const;
 
 export const SIDEBAR_ITEMS = [
@@ -67,5 +69,10 @@ export const SIDEBAR_ITEMS = [
     label: "Architecture",
     href: APP_ROUTES.architecture,
     icon: Code2,
+  },
+  {
+    label: "Runtime",
+    href: APP_ROUTES.runtime,
+    icon: Activity,
   },
 ];
