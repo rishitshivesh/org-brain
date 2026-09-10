@@ -29,6 +29,9 @@ export interface RemoteHistoryItem {
 export interface RemoteMemoryMatch {
   id: string;
   score: number;
+  kind?: "incident-rca" | "architecture-decision" | "work-item";
+  title?: string;
+  summary?: string;
   incidentId?: string;
   rootCause?: string;
   mitigation?: string;
