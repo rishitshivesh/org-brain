@@ -108,6 +108,18 @@ This file keeps a small set of representative development commands used for impl
 
 > Give each seeded Scenario Lab fixture a strong investigation prompt that can be copied into Ask. Keep the hidden answer key separate and make incident drill-down expose trace operations, log metadata, metric regressions, deployment context and suspect source code.
 
+## RCA evaluation harness
+
+> Build a server-only evaluation harness for seeded RCAs. Compare generated evidence, service attribution, deployment attribution, source-change attribution and causal concepts against hidden scenario contracts, but return only aggregate rubric scores to the browser.
+
+## Evaluation Lab
+
+> Add a reviewer-facing Evaluation Lab that runs all seeded incidents through the same orchestrator and displays benchmark scores across the hidden rubric. Do not expose expected root-cause wording or private evaluation IDs in client code.
+
+## Architecture and runtime surfaces
+
+> Add in-app Architecture and Runtime views. Explain the deterministic-first agent architecture, provider boundaries, Cloudflare execution path and mocked integrations, and let Runtime health-check the configured Worker so reviewers can verify Workers AI, Workflow and Durable Object bindings are reachable.
+
 ## Scenario review
 
 > Review the seeded incidents end to end. Verify timestamps, trace IDs, service relationships, deployment versions, commit references and work-item links are internally consistent, and keep public scenario metadata separate from the evaluation answer key.
