@@ -2,36 +2,29 @@
 
 ## What it is
 
-Org Brain is an AI-powered engineering intelligence workspace that connects work items, services, repositories, deployments, traces, logs, metrics, incidents, architecture decisions, and operational history into one coordinated investigation surface.
+Org Brain is an AI-powered engineering intelligence workspace that connects work items, services, repositories, deployments, traces, logs, metrics, incidents, architecture decisions and operational history into one coordinated investigation surface.
 
-The core design principle is **programmatic first, AI second**. Explicit engineering relationships are resolved deterministically before an LLM is asked to reason over them.
+Its central design principle is **programmatic first, AI second**. Engineering relationships are resolved through typed provider contracts before Workers AI is asked to reason over the resulting evidence.
 
-## Why this exists
+## Cloudflare architecture
 
-Production incidents and planning questions rarely live in one system. A developer may need to correlate an incident with traces, a deployment, a commit, a work item, and an ADR before they can answer a simple question such as:
+The submitted runtime uses:
 
-> Why did claims submission latency increase after the latest deployment?
-
-Org Brain models those relationships directly and uses bounded specialist agents to investigate them.
-
-## Cloudflare components
-
-- **Workers AI** — Llama 3.3 synthesis over structured evidence
-- **Workers** — API boundary for investigations and approvals
-- **Workflows** — durable multi-step investigation execution and human approval pause/resume
-- **Durable Objects** — strongly coordinated investigation state
-- **AI Gateway** — model-call routing and observability
-
-The architecture is ready for D1 and Vectorize as the persistence and historical-memory layer, but the submitted demo intentionally keeps source engineering entities behind mock provider contracts so the end-to-end investigation remains deterministic and reproducible.
-
-## Architecture
+- **Workers** for the investigation/history/memory/approval API
+- **Workers AI** with Llama 3.3 for grounded synthesis
+- **AI Gateway** for model routing and observability
+- **Workflows** for durable multi-step investigation execution
+- **Durable Objects** for strongly coordinated per-investigation state
+- **D1** for persisted organization entities, investigation history and provider handoffs
+- **Vectorize** for organization memory across prior RCAs, ADRs and work items
 
 ```mermaid
 flowchart LR
   U[Engineer] --> UI[Next.js + Agent Elements]
-  UI --> W[Cloudflare Worker API]
+  UI --> W[Cloudflare Worker]
   W --> WF[Investigation Workflow]
-  WF --> O[Deterministic Orchestrator]
+  WF --> P[D1 Provider Contracts]
+  P --> O[Bounded Orchestrator]
 
   O --> WA[Work Agent]
   O --> OA[Observability Agent]
@@ -39,159 +32,212 @@ flowchart LR
   O --> DA[Dependency Agent]
   O --> KA[Knowledge Agent]
 
-  WA --> P[Provider Contracts]
-  OA --> P
-  CA --> P
-  DA --> P
-  KA --> P
-
-  P --> DATA[Seeded Engineering Graph]
-
-  O --> AI[Workers AI / Llama 3.3]
+  O --> M[Vectorize / D1 Memory]
+  O --> AI[Workers AI]
   AI --> GW[AI Gateway]
 
-  WF <--> DO[Durable Object Investigation State]
-  WF --> AP{Approval required?}
-  AP -->|Yes| WAIT[waitForEvent]
-  UI -->|Human decision| W
+  WF <--> DO[Durable Object State]
+  WF --> WAIT[waitForEvent Approval]
+  UI -->|edit remediation| W
+  UI -->|human approval| W
   W -->|sendEvent| WAIT
   WAIT --> WF
+  WF --> H[D1 Provider Handoff]
+  WF --> M
 ```
+
+The same agent/context code can still run locally against the seed-backed mock implementation. Inside Cloudflare, the Workflow self-seeds the coherent demo organization into D1 once and runs those same provider interfaces against persisted data.
 
 ## Agent model
 
-Org Brain uses bounded specialists instead of an unconstrained autonomous loop:
+Org Brain deliberately avoids an unconstrained autonomous loop. At most three relevant specialists are selected for a query:
 
-- **Work Agent** — requirement impact, work conflicts, related services
-- **Observability Agent** — traces, logs, metrics, runtime bottleneck localization
-- **Change Agent** — deployments, commits, source changes, change correlation
-- **Dependency Agent** — upstream/downstream graph traversal and blast radius
+- **Work Agent** — work-item impact, conflicts, service boundaries and generated feature/story packages
+- **Observability Agent** — traces, logs, metrics and runtime bottleneck localization
+- **Change Agent** — deployments, commits, source snapshots and change correlation
+- **Dependency Agent** — explicit upstream/downstream traversal and blast radius
 - **Knowledge Agent** — ADRs and architecture constraints
 
-The orchestrator runs only relevant specialists and caps execution to avoid uncontrolled agent loops.
+Incident analysis keeps observation and code attribution separate before synthesis.
+
+## Closed-loop investigation
+
+```text
+Incident
+  ↓
+Trace / Logs / Metrics
+  ↓
+Deployment / Commit / Source
+  ↓
+RCA + confidence
+  ↓
+Historical precedent retrieval
+  ↓
+Mitigation + editable remediation
+  ↓
+Human approval
+  ↓
+D1 provider handoff
+  ↓
+D1 history + Vectorize organizational memory
+```
+
+Historical memory is context, never causal proof. Workers AI is explicitly instructed not to treat a similar past incident as evidence that the current incident has the same root cause.
 
 ## Scenario Lab
 
-The submitted demo includes three complete, deterministic incident packs rather than one hard-coded happy path:
+The submitted demo contains three deterministic incident packs rather than one hard-coded happy path:
 
 | Scenario | Failure mode | Strongest evidence | Correlated change |
 | --- | --- | --- | --- |
 | `INC-2409` | sequential validation latency | 3.4s document span, consumer lag | `DEP-2198` / `8fc19b2` |
-| `INC-2417` | database pool exhaustion | 1.98s connection acquisition, 31 pending requests | `DEP-2214` / `c41db71` |
-| `INC-2424` | retry amplification | five validation attempts, 390 → 1840 rps | `DEP-2231` / `a90ed31` |
+| `INC-2417` | database pool exhaustion | ~2s connection acquisition, pending pool pressure | `DEP-2214` / `c41db71` |
+| `INC-2424` | retry amplification | repeated validation attempts, request amplification | `DEP-2231` / `a90ed31` |
 
-Each scenario exposes only observable evidence to the UI. Expected root causes remain in a separate evaluation module and are never imported by runtime/client investigation code.
+Each has independent trace, log, metric, deployment, commit and source evidence. Public scenario metadata does not expose hidden expected root causes.
 
-## Canonical demo
+## Evaluation harness
 
-### 1. Inject the incident
+`/evaluations` executes the production orchestrator against the same scenarios and scores its structured RCA against server-only hidden contracts.
 
-Open `/scenario-lab` and inject **Claims submission latency spike**. The card provides a guided investigation prompt that can be copied directly into Ask.
+The rubric checks:
 
-### 2. Investigate
+- supporting evidence coverage
+- affected-service attribution
+- deployment attribution
+- commit/change attribution
+- causal alignment
 
-Expected investigation path:
+Only safe aggregate scores are sent to the browser. The expected answer remains server-side.
 
-1. Observability Agent resolves `INC-2409`
-2. trace `tr_8b92f17c` is inspected
-3. document validation is localized as the dominant leaf span
-4. consumer processing and lag regressions are correlated
-5. Change Agent inspects deployment `DEP-2198`
-6. commit `8fc19b2` and its source snapshot are inspected
-7. sequential document validation is identified as the strongest change candidate
-8. RCA Synthesizer produces an evidence-backed root cause and confidence
+## Planning intelligence
 
-### 3. Human approval
+Planning questions use the same organization model rather than a separate demo path.
 
-The RCA proposes mitigation and remediation but does not execute either automatically.
-
-Choose **Mitigation + remediation** in the Agent Elements approval question.
-
-The Cloudflare Workflow is resumed with an external event, approval is stored in durable investigation state, and the remediation draft becomes eligible for provider handoff.
-
-No real deployment rollback or external work item mutation occurs in the demo.
-
-## Why the additional scenarios matter
-
-The same specialist architecture now has to reason over materially different causal shapes:
-
-- **Sequential work in a hot path** — source structure and consumer telemetry align.
-- **Capacity/configuration regression** — connection acquisition dominates while CPU remains healthy.
-- **Dependency retry storm** — repeated trace attempts and request amplification reveal cascading failure rather than a single slow call.
-
-The Change Agent therefore scores multiple source patterns, and the RCA Synthesizer generates scenario-specific mitigations and remediation work instead of returning one canned claims-worker answer.
-
-## Planning demo
-
-Ask:
+Example:
 
 > What changes if we support partial settlement for OPD claims?
 
-Org Brain resolves:
+Org Brain resolves `ADO-4231`, its explicit conflict with `ADO-3988`, affected services and relevant ADR constraints. For implementation/planning language the Work Agent also returns a structured draft package containing a feature plus per-service implementation stories and acceptance criteria.
 
-- existing related work `ADO-4231`
-- explicit conflict with `ADO-3988`
-- affected services
-- ADR-018 architecture constraint
+## Human-reviewed remediation
 
-This demonstrates that the product is not incident-only. The same organization graph supports engineering planning and impact analysis.
+After RCA synthesis:
+
+1. the Workflow enters `waiting-approval`
+2. `/remediation/:id` can edit the generated work-item title, description and acceptance criteria
+3. edits are saved to Durable Object state and D1
+4. Agent Elements captures the approval decision
+5. the Worker sends an event to the existing Workflow instance
+6. the Workflow reads the **latest** durable remediation draft
+7. approved remediation is recorded in the D1 provider-handoff ledger
+8. no external system is silently mutated
+
+`/handoffs` makes this boundary inspectable during the demo.
+
+## Organizational memory
+
+`/history` exposes D1-backed investigation history and organization-memory search.
+
+When Vectorize is bound, Org Brain embeds and retrieves:
+
+- accepted architecture decisions
+- work-item context
+- completed/root-caused incident summaries
+
+If Vectorize is unavailable, historical incident search degrades to a D1 text-search fallback rather than breaking the investigation Workflow.
 
 ## What is real in the submission
 
-- interactive Next.js portal
-- Agent Elements chat/tool/approval UI
-- three deterministic production incident fixtures
-- deterministic engineering graph traversal
-- five specialist agent boundaries
-- evidence-backed, failure-mode-specific RCA synthesis
-- Cloudflare Worker API
-- Cloudflare Workflow execution model
-- `waitForEvent` / `sendEvent` approval boundary
-- Durable Object investigation state
-- Workers AI integration
-- AI Gateway configuration
-- local fallback when a remote Worker is not configured
+- interactive Next.js portal and Agent Elements UI
+- bounded specialist orchestration
+- deterministic context resolution
+- D1-backed organization provider implementation
+- three independent incident evidence packs
+- hidden-truth RCA evaluation
+- failure-mode-specific RCA and remediation generation
+- Workers API
+- Workers AI + AI Gateway
+- Cloudflare Workflows
+- Durable Objects
+- D1 investigation/history/provider-handoff persistence
+- Vectorize organizational memory
+- editable durable remediation
+- human approval pause/resume
+- local deterministic fallback
+- runtime health, architecture, history, handoff and evaluation surfaces
 
-## What is intentionally mocked
+## Intentionally externalized
 
-- Azure DevOps work-item provider
-- GitHub repository provider
-- Elastic / ClickHouse observability providers
-- deployment/rollback execution provider
-- final external work-item creation
+The submitted project does not require reviewer credentials for real enterprise systems. These final external adapters remain intentionally non-mutating:
 
-All mocked systems sit behind provider contracts so production adapters can replace them without changing the specialist/context APIs.
+- Azure DevOps
+- GitHub organization/repository APIs
+- Elastic / ClickHouse
+- Kubernetes/deployment rollback systems
+
+The Cloudflare runtime persists provider-shaped demo data in D1 behind the same interfaces those production adapters would implement. Approval produces a durable handoff record, not an unreviewed production mutation.
 
 ## Safety / reliability choices
 
-- relationships are resolved by IDs before LLM reasoning
-- specialists receive bounded structured context instead of raw organization data
-- scenario hidden truth is kept separate from runtime evidence
-- telemetry is scoped to the active failure shape so independent fixtures do not contaminate one another
-- model output cannot create arbitrary engineering relationships
-- approval is distinct from execution
-- external mutation is disabled in the demo
-- local deterministic fallback remains available if Workers AI is unavailable
-- motion respects `prefers-reduced-motion`
+- IDs and graph edges are resolved before LLM reasoning
+- specialists receive bounded context
+- scenario truth never enters runtime agent context
+- historical similarity is explicitly separated from current evidence
+- RCA confidence comes from deterministic specialist evidence, not an invented LLM number
+- Workers AI has deterministic fallback
+- Workflows persist multi-step execution
+- human approval is distinct from execution
+- remediation edits are only allowed while waiting for approval
+- API inputs are bounded
+- external production mutation is disabled for the review environment
 
-## Local run
+## Reviewer demo
+
+The shortest useful sequence is:
+
+1. `/scenario-lab` → inject `INC-2409`
+2. `/` → run the guided RCA prompt
+3. observe specialist/tool activity and memory lookup
+4. open `/remediation/<investigation-id>` and edit one acceptance criterion
+5. approve remediation in Ask
+6. `/handoffs` → show the durable provider-handoff record
+7. run `INC-2417` or `INC-2424`
+8. `/history` → search organization memory
+9. `/evaluations` → show hidden-truth regression scoring
+10. `/architecture` and `/runtime` → show how the system is actually wired
+
+See [`DEMO-CHECKLIST.md`](./DEMO-CHECKLIST.md) for exact prompts.
+
+## Run
 
 ```bash
 yarn install
-yarn dev
-```
-
-Cloudflare Worker:
-
-```bash
+yarn cf:memory:setup
 yarn cf:dev
 ```
 
-Then configure the frontend:
+Frontend `.env.local`:
 
 ```bash
 NEXT_PUBLIC_ORG_BRAIN_API_URL=http://localhost:8787
 ```
+
+Then:
+
+```bash
+yarn dev
+```
+
+## Deploy
+
+```bash
+yarn cf:deploy
+```
+
+Current Wrangler automatically provisions the D1 resource from the checked-in binding when needed. `cf:deploy` also creates/binds the 768-dimensional `org-brain-memory` Vectorize index before deployment.
+
+Set the Worker `ALLOWED_ORIGIN` to the deployed frontend origin and point `NEXT_PUBLIC_ORG_BRAIN_API_URL` at the deployed Worker.
 
 ## Quality gate
 
@@ -200,8 +246,9 @@ yarn format
 yarn lint
 yarn typecheck
 yarn build
+yarn cf:dev
 ```
 
 ## AI-assisted development
 
-AI-assisted development was used throughout the assignment. Representative prompts and implementation commands are documented in `AI-COMMANDS.md` as requested by the assignment.
+AI-assisted development was used throughout the assignment. Representative development prompts and implementation requests are documented in [`AI-COMMANDS.md`](./AI-COMMANDS.md).
