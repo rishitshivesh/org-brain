@@ -1,7 +1,9 @@
 import { resolveOrgQuery } from "@/lib/query-resolver";
 import type { OrgBrainProviders } from "@/providers/types";
 
+import { runChangeAgent } from "./change-agent";
 import { runObservabilityAgent } from "./observability-agent";
+import { synthesizeIncidentRca } from "./synthesizer";
 import type {
   OrchestrationPlan,
   OrchestrationResult,
@@ -10,7 +12,7 @@ import type {
 import { runWorkAgent } from "./work-agent";
 
 const workSignals = ["ado-", "work item", "partial settlement", "opd", "requirement", "conflict"];
-const incidentSignals = ["inc-", "incident", "latency", "trace", "logs", "slow", "error"];
+const incidentSignals = ["inc-", "incident", "latency", "trace", "logs", "slow", "error", "root cause", "rca"];
 
 function includesAny(query: string, signals: string[]): boolean {
   return signals.some((signal) => query.includes(signal));
@@ -19,21 +21,23 @@ function includesAny(query: string, signals: string[]): boolean {
 export function planOrchestration(rawQuery: string): OrchestrationPlan {
   const query = rawQuery.toLowerCase();
   const work = includesAny(query, workSignals);
-  const observability = includesAny(query, incidentSignals);
+  const incident = includesAny(query, incidentSignals);
 
-  if (work && observability) {
+  if (work && incident) {
     return {
       intent: "impact-analysis",
-      agents: ["work", "observability"],
-      reason: "The query crosses delivery context and production evidence, so both bounded specialists are useful.",
+      agents: ["work", "observability", "change"],
+      reason:
+        "The query crosses delivery context and production evidence, so work, runtime and change specialists are useful.",
     };
   }
 
-  if (observability) {
+  if (incident) {
     return {
-      intent: "incident-investigation",
-      agents: ["observability"],
-      reason: "The query asks about runtime symptoms or incident evidence.",
+      intent: "root-cause-analysis",
+      agents: ["observability", "change"],
+      reason:
+        "The query asks about an operational symptom, so runtime evidence and correlated engineering changes must be evaluated separately.",
     };
   }
 
@@ -59,11 +63,13 @@ export async function runOrchestrator(
   const plan = planOrchestration(query);
   const runs: SpecialistAgentResult[] = [];
 
-  for (const agent of plan.agents.slice(0, 2)) {
+  for (const agent of plan.agents.slice(0, 3)) {
     const result =
       agent === "work"
         ? await runWorkAgent(providers, query)
-        : await runObservabilityAgent(providers, query);
+        : agent === "observability"
+          ? await runObservabilityAgent(providers, query)
+          : await runChangeAgent(providers, query);
     if (result) runs.push(result);
   }
 
@@ -77,10 +83,27 @@ export async function runOrchestrator(
     };
   }
 
+  const incidentId = runs
+    .flatMap((run) => run.references)
+    .find((reference) => /^INC-\d+$/i.test(reference));
+  const synthesis = incidentId
+    ? synthesizeIncidentRca(incidentId, runs)
+    : null;
+
   return {
     plan,
     runs,
-    references: [...new Set(runs.flatMap((run) => run.references))],
-    answer: runs.map((run) => run.summary).join("\n\n---\n\n"),
+    tools: synthesis?.tools,
+    rca: synthesis?.rca,
+    references: [
+      ...new Set([
+        ...runs.flatMap((run) => run.references),
+        ...(synthesis?.rca.remediationDraft.sourceReferences?.map((reference) => reference.id) ?? []),
+      ]),
+    ],
+    answer: [
+      ...runs.map((run) => run.summary),
+      ...(synthesis ? [synthesis.summary] : []),
+    ].join("\n\n---\n\n"),
   };
 }
