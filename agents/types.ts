@@ -19,12 +19,19 @@ export interface AgentFinding {
   evidenceAgainst?: string[];
 }
 
+export interface WorkPackageDraft {
+  sourceWorkItemId: string;
+  summary: string;
+  items: WorkItemDraft[];
+}
+
 export interface SpecialistAgentResult {
   agent: SpecialistAgentId;
   summary: string;
   references: string[];
   tools: AgentToolEvent[];
   findings?: AgentFinding[];
+  workPackage?: WorkPackageDraft;
 }
 
 export interface OrchestrationPlan {
@@ -60,4 +67,5 @@ export interface OrchestrationResult {
   runs: SpecialistAgentResult[];
   tools?: AgentToolEvent[];
   rca?: RcaSynthesis;
+  workPackage?: WorkPackageDraft;
 }
