@@ -2,50 +2,76 @@ import { resolveOrgQuery } from "@/lib/query-resolver";
 import type { OrgBrainProviders } from "@/providers/types";
 
 import { runChangeAgent } from "./change-agent";
+import { runDependencyAgent } from "./dependency-agent";
+import { runKnowledgeAgent } from "./knowledge-agent";
 import { runObservabilityAgent } from "./observability-agent";
 import { synthesizeIncidentRca } from "./synthesizer";
 import type {
   OrchestrationPlan,
   OrchestrationResult,
+  SpecialistAgentId,
   SpecialistAgentResult,
 } from "./types";
 import { runWorkAgent } from "./work-agent";
 
 const workSignals = ["ado-", "work item", "partial settlement", "opd", "requirement", "conflict"];
 const incidentSignals = ["inc-", "incident", "latency", "trace", "logs", "slow", "error", "root cause", "rca"];
+const dependencySignals = ["dependency", "dependencies", "depends on", "upstream", "downstream", "blast radius", "calls", "service path"];
+const knowledgeSignals = ["adr-", "architecture", "decision", "constraint", "knowledge"];
 
 function includesAny(query: string, signals: string[]): boolean {
   return signals.some((signal) => query.includes(signal));
+}
+
+function uniqueAgents(agents: SpecialistAgentId[]): SpecialistAgentId[] {
+  return [...new Set(agents)].slice(0, 3);
 }
 
 export function planOrchestration(rawQuery: string): OrchestrationPlan {
   const query = rawQuery.toLowerCase();
   const work = includesAny(query, workSignals);
   const incident = includesAny(query, incidentSignals);
-
-  if (work && incident) {
-    return {
-      intent: "impact-analysis",
-      agents: ["work", "observability", "change"],
-      reason:
-        "The query crosses delivery context and production evidence, so work, runtime and change specialists are useful.",
-    };
-  }
+  const dependency = includesAny(query, dependencySignals);
+  const knowledge = includesAny(query, knowledgeSignals);
 
   if (incident) {
     return {
       intent: "root-cause-analysis",
-      agents: ["observability", "change"],
-      reason:
-        "The query asks about an operational symptom, so runtime evidence and correlated engineering changes must be evaluated separately.",
+      agents: uniqueAgents([
+        "observability",
+        "change",
+        ...(dependency ? ["dependency" as SpecialistAgentId] : []),
+        ...(knowledge ? ["knowledge" as SpecialistAgentId] : []),
+      ]),
+      reason: "Runtime evidence and engineering changes are evaluated separately, with dependency or architecture context added only when the query asks for it.",
     };
   }
 
   if (work) {
     return {
       intent: "work-planning",
-      agents: ["work"],
-      reason: "The query asks about existing work, requirements or conflicts.",
+      agents: uniqueAgents([
+        "work",
+        ...(dependency ? ["dependency" as SpecialistAgentId] : []),
+        ...(knowledge ? ["knowledge" as SpecialistAgentId] : []),
+      ]),
+      reason: "Work context is primary, with dependency and architecture specialists added only when requested.",
+    };
+  }
+
+  if (dependency) {
+    return {
+      intent: "service-analysis",
+      agents: ["dependency"],
+      reason: "The query asks about explicit service reachability or blast radius.",
+    };
+  }
+
+  if (knowledge) {
+    return {
+      intent: "impact-analysis",
+      agents: ["knowledge"],
+      reason: "The query asks for durable architecture decisions or constraints.",
     };
   }
 
@@ -56,6 +82,25 @@ export function planOrchestration(rawQuery: string): OrchestrationPlan {
   };
 }
 
+async function runSpecialist(
+  agent: SpecialistAgentId,
+  providers: OrgBrainProviders,
+  query: string,
+): Promise<SpecialistAgentResult | null> {
+  switch (agent) {
+    case "work":
+      return runWorkAgent(providers, query);
+    case "observability":
+      return runObservabilityAgent(providers, query);
+    case "change":
+      return runChangeAgent(providers, query);
+    case "dependency":
+      return runDependencyAgent(providers, query);
+    case "knowledge":
+      return runKnowledgeAgent(providers, query);
+  }
+}
+
 export async function runOrchestrator(
   providers: OrgBrainProviders,
   query: string,
@@ -63,13 +108,8 @@ export async function runOrchestrator(
   const plan = planOrchestration(query);
   const runs: SpecialistAgentResult[] = [];
 
-  for (const agent of plan.agents.slice(0, 3)) {
-    const result =
-      agent === "work"
-        ? await runWorkAgent(providers, query)
-        : agent === "observability"
-          ? await runObservabilityAgent(providers, query)
-          : await runChangeAgent(providers, query);
+  for (const agent of plan.agents) {
+    const result = await runSpecialist(agent, providers, query);
     if (result) runs.push(result);
   }
 
@@ -86,9 +126,7 @@ export async function runOrchestrator(
   const incidentId = runs
     .flatMap((run) => run.references)
     .find((reference) => /^INC-\d+$/i.test(reference));
-  const synthesis = incidentId
-    ? synthesizeIncidentRca(incidentId, runs)
-    : null;
+  const synthesis = incidentId ? synthesizeIncidentRca(incidentId, runs) : null;
 
   return {
     plan,

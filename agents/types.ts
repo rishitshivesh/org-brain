@@ -1,6 +1,11 @@
 import type { OrgBrainIntent, WorkItemDraft } from "@/types/org-brain";
 
-export type SpecialistAgentId = "work" | "observability" | "change";
+export type SpecialistAgentId =
+  | "work"
+  | "observability"
+  | "change"
+  | "dependency"
+  | "knowledge";
 
 export interface AgentToolEvent {
   id: string;
@@ -40,6 +45,16 @@ export interface RcaSynthesis {
   evidenceAgainst: string[];
   mitigation: string;
   remediationDraft: WorkItemDraft;
+}
+
+export type ApprovalAction = "mitigation" | "remediation";
+
+export interface ApprovalRecord {
+  id: string;
+  incidentId: string;
+  actions: ApprovalAction[];
+  status: "approved" | "kept-as-draft";
+  recordedAt: string;
 }
 
 export interface OrchestrationResult {
