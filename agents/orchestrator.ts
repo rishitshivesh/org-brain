@@ -17,10 +17,15 @@ import { runWorkAgent } from "./work-agent";
 const workSignals = [
   "ado-",
   "work item",
+  "work items",
   "partial settlement",
   "opd",
   "requirement",
   "conflict",
+  "implement",
+  "break down",
+  "breakdown",
+  "stories",
 ];
 const incidentSignals = [
   "inc-",
@@ -32,6 +37,10 @@ const incidentSignals = [
   "error",
   "root cause",
   "rca",
+  "timeout",
+  "timeouts",
+  "retry",
+  "database",
 ];
 const dependencySignals = [
   "dependency",
@@ -164,17 +173,22 @@ export async function runOrchestrator(
     .flatMap((run) => run.references)
     .find((reference) => /^INC-\d+$/i.test(reference));
   const synthesis = incidentId ? synthesizeIncidentRca(incidentId, runs) : null;
+  const workPackage = runs.find((run) => run.workPackage)?.workPackage;
 
   return {
     plan,
     runs,
     tools: synthesis?.tools,
     rca: synthesis?.rca,
+    workPackage,
     references: [
       ...new Set([
         ...runs.flatMap((run) => run.references),
         ...(synthesis?.rca.remediationDraft.sourceReferences?.map(
           (reference) => reference.id,
+        ) ?? []),
+        ...(workPackage?.items.flatMap((item) =>
+          item.sourceReferences?.map((reference) => reference.id) ?? [],
         ) ?? []),
       ]),
     ],
