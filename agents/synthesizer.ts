@@ -1,4 +1,4 @@
-import type { IncidentId } from "@/types/org-brain";
+import type { IncidentId, ServiceId, WorkItemDraft } from "@/types/org-brain";
 
 import type {
   AgentToolEvent,
@@ -11,6 +11,105 @@ function firstFinding(
   agent: SpecialistAgentResult["agent"],
 ) {
   return runs.find((run) => run.agent === agent)?.findings?.[0];
+}
+
+interface RcaPattern {
+  rootCause: (commit: string) => string;
+  mitigation: string;
+  draft: Omit<WorkItemDraft, "rationale" | "sourceReferences">;
+}
+
+function detectPattern(changeEvidence: string[]): RcaPattern {
+  const evidence = changeEvidence.join(" ").toLowerCase();
+
+  if (evidence.includes("awaited work inside a loop")) {
+    return {
+      rootCause: (commit) =>
+        `Commit ${commit} introduced sequential awaited document validation in the claims-worker processing path. The deployed change matches the trace bottleneck and the sharp increase in consumer processing time and lag.`,
+      mitigation:
+        "Roll back the correlated claims-worker release to the previous known-good version while the validation path is corrected and re-tested.",
+      draft: {
+        type: "Bug",
+        title: "Remove sequential document validation from claims consumer path",
+        description:
+          "Refactor claims-worker document validation so independent document checks do not execute serially inside the consumer processing path. Preserve bounded concurrency, error isolation and existing validation metrics.",
+        tags: ["claims", "performance", "document-validation", "remediation"],
+        relatedServiceIds: ["SVC-CLAIMS-WORKER", "SVC-DOCUMENT"] as ServiceId[],
+        acceptanceCriteria: [
+          "Document validation no longer performs unbounded sequential awaits for independent documents.",
+          "Consumer processing latency returns to the established baseline under the seeded workload.",
+          "Validation failures remain observable per document without blocking unrelated checks.",
+          "Consumer lag does not regress under the same load profile.",
+        ],
+      },
+    };
+  }
+
+  if (evidence.includes("database pool max configured")) {
+    return {
+      rootCause: (commit) =>
+        `Commit ${commit} reduced the claims-api database connection pool below the concurrency required by the production workload. Connection acquisition became the dominant trace span while application CPU remained stable, causing queued requests and checkout timeouts.`,
+      mitigation:
+        "Restore the previous production database pool limit and monitor connection wait time, pending acquisitions and checkout p95 before gradually tuning the pool again.",
+      draft: {
+        type: "Bug",
+        title: "Restore capacity-aware database pool configuration",
+        description:
+          "Replace the reduced claims-api database pool setting with a capacity-tested configuration and add guardrails so production connection limits cannot be lowered below the observed concurrency requirement without validation.",
+        tags: ["claims", "database", "capacity", "remediation"],
+        relatedServiceIds: ["SVC-CLAIMS-API"] as ServiceId[],
+        acceptanceCriteria: [
+          "Database connection wait time remains within the established request latency budget at peak seeded concurrency.",
+          "Pool pending requests return to baseline under the same load profile.",
+          "Checkout p95 returns to the pre-incident range.",
+          "Pool configuration changes include an explicit capacity validation or safe lower bound.",
+        ],
+      },
+    };
+  }
+
+  if (evidence.includes("retry policy allows")) {
+    return {
+      rootCause: (commit) =>
+        `Commit ${commit} introduced an aggressive synchronous retry policy for document-service failures. Repeated near-immediate attempts amplified a downstream 5xx condition into higher request volume and end-to-end latency across claims submission.`,
+      mitigation:
+        "Disable or reduce the new retry policy, restore bounded exponential backoff with jitter, and temporarily shed repeated document-validation attempts while document-service recovers.",
+      draft: {
+        type: "Bug",
+        title: "Bound document-service retries with backoff and latency budget",
+        description:
+          "Replace immediate repeated document-validation retries with bounded exponential backoff, jitter and a caller latency budget. Prevent a degraded dependency from multiplying synchronous traffic.",
+        tags: ["claims", "resilience", "retry", "remediation"],
+        relatedServiceIds: ["SVC-CLAIMS-API", "SVC-DOCUMENT"] as ServiceId[],
+        acceptanceCriteria: [
+          "Transient document-service failures do not create more than the approved bounded retry count.",
+          "Retries use exponential backoff with jitter rather than near-immediate repeated attempts.",
+          "The total retry budget cannot exceed the claims submission latency budget.",
+          "Dependency degradation does not amplify document-service request volume beyond the configured retry ceiling.",
+        ],
+      },
+    };
+  }
+
+  return {
+    rootCause: (commit) =>
+      `Commit ${commit} introduced behavior that is strongly correlated with the runtime bottleneck identified by the Observability Agent.`,
+    mitigation:
+      "Roll back the correlated release to the previous known-good version while the suspected change is isolated and re-tested against the observed production failure mode.",
+    draft: {
+      type: "Bug",
+      title: "Remediate correlated production regression",
+      description:
+        "Correct the change correlated with the incident, reproduce the observed failure mode in a controlled test and add a regression guard for the affected service path.",
+      tags: ["production", "regression", "remediation"],
+      relatedServiceIds: [],
+      acceptanceCriteria: [
+        "The incident failure mode is reproducible before the fix and no longer reproducible after it.",
+        "The affected latency or error signal returns to its previous baseline.",
+        "A regression guard covers the identified change pattern.",
+      ],
+    },
+  };
 }
 
 export function synthesizeIncidentRca(
@@ -28,19 +127,19 @@ export function synthesizeIncidentRca(
     ),
   );
   const commit = change.title.replace("Candidate change ", "");
-  const sequentialValidation = change.evidence.some((item) =>
-    item.includes("awaited work inside a loop"),
-  );
-  const rootCause = sequentialValidation
-    ? `Commit ${commit} introduced sequential awaited document validation in the claims-worker processing path. The deployed change matches the trace bottleneck and the sharp increase in consumer processing time and lag.`
-    : `Commit ${commit} introduced behavior that is strongly correlated with the runtime bottleneck identified by the Observability Agent.`;
+  const pattern = detectPattern(change.evidence);
+  const rootCause = pattern.rootCause(commit);
   const evidence = [...observability.evidence, ...change.evidence];
   const evidenceAgainst = [
     ...(observability.evidenceAgainst ?? []),
     ...(change.evidenceAgainst ?? []),
   ];
-  const mitigation =
-    "Roll back the correlated claims-worker release to the previous known-good version while the validation path is corrected and re-tested.";
+
+  const remediationDraft: WorkItemDraft = {
+    ...pattern.draft,
+    rationale: `Generated from ${incidentId} after correlating runtime evidence with the deployed source change.`,
+    sourceReferences: [{ type: "incident", id: incidentId }],
+  };
 
   const rca: RcaSynthesis = {
     incidentId,
@@ -48,23 +147,8 @@ export function synthesizeIncidentRca(
     confidence,
     evidence,
     evidenceAgainst,
-    mitigation,
-    remediationDraft: {
-      type: "Bug",
-      title: "Remove sequential document validation from claims consumer path",
-      description:
-        "Refactor claims-worker document validation so independent document checks do not execute serially inside the consumer processing path. Preserve bounded concurrency, error isolation and existing validation metrics.",
-      tags: ["claims", "performance", "document-validation", "remediation"],
-      relatedServiceIds: ["SVC-CLAIMS-WORKER", "SVC-DOCUMENT"],
-      acceptanceCriteria: [
-        "Document validation no longer performs unbounded sequential awaits for independent documents.",
-        "Consumer processing latency returns to the established baseline under the seeded workload.",
-        "Validation failures remain observable per document without blocking unrelated checks.",
-        "Consumer lag does not regress under the same load profile.",
-      ],
-      rationale: `Generated from ${incidentId} after correlating runtime evidence with the deployed source change.`,
-      sourceReferences: [{ type: "incident", id: incidentId }],
-    },
+    mitigation: pattern.mitigation,
+    remediationDraft,
   };
 
   const tools: AgentToolEvent[] = [
@@ -85,16 +169,16 @@ export function synthesizeIncidentRca(
       id: `mitigation-${incidentId}`,
       name: "prepare_mitigation",
       input: { incidentId },
-      output: { mitigation, execution: "draft-only" },
+      output: { mitigation: pattern.mitigation, execution: "draft-only" },
     },
     {
       id: `remediation-${incidentId}`,
       name: "prepare_remediation_work",
       input: { incidentId },
       output: {
-        title: rca.remediationDraft.title,
-        type: rca.remediationDraft.type,
-        acceptanceCriteria: rca.remediationDraft.acceptanceCriteria,
+        title: remediationDraft.title,
+        type: remediationDraft.type,
+        acceptanceCriteria: remediationDraft.acceptanceCriteria,
         execution: "draft-only",
       },
     },
@@ -115,9 +199,9 @@ export function synthesizeIncidentRca(
       ? evidenceAgainst.map((item) => `- ${item}`)
       : ["- No contradictory evidence was found in the seeded context."]),
     "",
-    `**Immediate mitigation**  \n${mitigation}`,
+    `**Immediate mitigation**  \n${pattern.mitigation}`,
     "",
-    `**Remediation draft**  \n${rca.remediationDraft.title}`,
+    `**Remediation draft**  \n${remediationDraft.title}`,
   ].join("\n");
 
   return { rca, tools, summary };
