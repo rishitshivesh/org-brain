@@ -1,6 +1,7 @@
 import {
   Activity,
   BookOpenCheck,
+  Brain,
   Cable,
   Code2,
   Computer,
@@ -19,6 +20,7 @@ export const APP_ROUTES = {
   graph: "/graph",
   knowledge: "/knowledge",
   scenarioLab: "/scenario-lab",
+  history: "/history",
   evaluations: "/evaluations",
   architecture: "/architecture",
   runtime: "/runtime",
@@ -59,6 +61,11 @@ export const SIDEBAR_ITEMS = [
     label: "Scenario Lab",
     href: APP_ROUTES.scenarioLab,
     icon: FlaskConical,
+  },
+  {
+    label: "History",
+    href: APP_ROUTES.history,
+    icon: Brain,
   },
   {
     label: "Evaluations",
