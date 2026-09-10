@@ -4,6 +4,8 @@ Org Brain is an engineering intelligence workspace that connects work items, ser
 
 The project is deliberately programmatic first. Entity relationships are resolved through IDs and graph edges before a model is allowed to reason over the resulting context.
 
+> **Reviewer shortcuts:** start with [`SUBMISSION.md`](./SUBMISSION.md) for the architecture and assignment framing, then use [`DEMO-CHECKLIST.md`](./DEMO-CHECKLIST.md) for the exact 3–5 minute demo path. Representative AI-assisted development prompts are documented in [`AI-COMMANDS.md`](./AI-COMMANDS.md).
+
 ## Current milestone
 
 The frontend, mock provider layer, deterministic organization-context builders, five bounded specialist roles and the Cloudflare investigation runtime are now in place.
