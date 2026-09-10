@@ -1,9 +1,9 @@
 import {
   BookOpenCheck,
   Cable,
-  ChartNoAxesCombined,
   Computer,
   FlaskConical,
+  Gauge,
   MessageSquare,
   OctagonAlertIcon,
   WorkflowIcon,
@@ -59,6 +59,6 @@ export const SIDEBAR_ITEMS = [
   {
     label: "Evaluations",
     href: APP_ROUTES.evaluations,
-    icon: ChartNoAxesCombined,
+    icon: Gauge,
   },
 ];
