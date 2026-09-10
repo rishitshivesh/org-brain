@@ -12,7 +12,10 @@
     "typecheck": "tsc --noEmit",
     "cf:types": "yarn dlx wrangler@latest types",
     "cf:dev": "yarn dlx wrangler@latest dev",
-    "cf:deploy": "yarn dlx wrangler@latest deploy"
+    "cf:deploy": "yarn dlx wrangler@latest deploy",
+    "cf:d1:local": "yarn dlx wrangler@latest d1 migrations apply DB --local",
+    "cf:d1:remote": "yarn dlx wrangler@latest d1 migrations apply DB --remote",
+    "cf:memory:setup": "yarn dlx wrangler@latest vectorize get org-brain-memory || yarn dlx wrangler@latest vectorize create org-brain-memory --dimensions=768 --metric=cosine --binding MEMORY --update-config"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
