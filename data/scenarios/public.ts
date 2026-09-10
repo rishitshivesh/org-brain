@@ -23,18 +23,20 @@ export const publicScenarios: PublicScenarioDefinition[] = [
     id: "database-pool",
     title: "Intermittent checkout timeouts",
     description:
-      "Reserved fixture for the next dataset expansion. The UI is ready, the evidence pack is not fabricated yet.",
-    ready: false,
-    signals: ["logs", "metrics", "deployment"],
+      "Inject a claims-api database saturation incident with connection-pool telemetry, request traces and a correlated configuration rollout.",
+    ready: true,
+    incidentId: "INC-2417",
+    signals: ["logs", "trace", "metrics", "deployment", "commit"],
     category: "availability",
   },
   {
     id: "retry-storm",
     title: "Cascading downstream failures",
     description:
-      "Reserved fixture for dependency and cascading-failure analysis.",
-    ready: false,
-    signals: ["trace", "logs", "metrics"],
+      "Inject a retry amplification incident where document-service degradation cascades back through claims-api and increases request volume.",
+    ready: true,
+    incidentId: "INC-2424",
+    signals: ["trace", "logs", "metrics", "deployment", "commit"],
     category: "dependency",
   },
 ];
