@@ -1,5 +1,6 @@
 import type { InvestigationState } from "../types/investigation";
 import type { Env } from "./env";
+import { searchPersistedHistory } from "./persistence";
 
 export interface MemoryMatch {
   id: string;
@@ -7,6 +8,7 @@ export interface MemoryMatch {
   incidentId?: string;
   rootCause?: string;
   mitigation?: string;
+  source: "vectorize" | "d1";
 }
 
 function embeddingFrom(response: unknown): number[] | null {
@@ -32,9 +34,10 @@ export async function indexInvestigationMemory(
     `Mitigation: ${rca.mitigation}`,
     `Remediation: ${rca.remediationDraft.title}`,
   ].join("\n");
-  const response = await env.AI.run(env.EMBEDDING_MODEL ?? "@cf/baai/bge-base-en-v1.5", {
-    text: [text],
-  });
+  const response = await env.AI.run(
+    env.EMBEDDING_MODEL ?? "@cf/baai/bge-base-en-v1.5",
+    { text: [text] },
+  );
   const values = embeddingFrom(response);
   if (!values) return false;
 
@@ -58,29 +61,48 @@ export async function searchInvestigationMemory(
   query: string,
   topK = 5,
 ): Promise<MemoryMatch[]> {
-  if (!env.MEMORY) return [];
-  const response = await env.AI.run(env.EMBEDDING_MODEL ?? "@cf/baai/bge-base-en-v1.5", {
-    text: [query],
-  });
-  const vector = embeddingFrom(response);
-  if (!vector) return [];
+  if (env.MEMORY) {
+    const response = await env.AI.run(
+      env.EMBEDDING_MODEL ?? "@cf/baai/bge-base-en-v1.5",
+      { text: [query] },
+    );
+    const vector = embeddingFrom(response);
+    if (vector) {
+      const result = await env.MEMORY.query(vector, {
+        topK: Math.max(1, Math.min(10, Math.floor(topK))),
+        returnMetadata: "all",
+      });
 
-  const result = await env.MEMORY.query(vector, {
-    topK: Math.max(1, Math.min(10, Math.floor(topK))),
-    returnMetadata: "all",
-  });
+      return result.matches.map((match) => {
+        const metadata = match.metadata ?? {};
+        return {
+          id: match.id,
+          score: match.score,
+          incidentId:
+            typeof metadata.incidentId === "string"
+              ? metadata.incidentId
+              : undefined,
+          rootCause:
+            typeof metadata.rootCause === "string"
+              ? metadata.rootCause
+              : undefined,
+          mitigation:
+            typeof metadata.mitigation === "string"
+              ? metadata.mitigation
+              : undefined,
+          source: "vectorize" as const,
+        };
+      });
+    }
+  }
 
-  return result.matches.map((match) => {
-    const metadata = match.metadata ?? {};
-    return {
-      id: match.id,
-      score: match.score,
-      incidentId:
-        typeof metadata.incidentId === "string" ? metadata.incidentId : undefined,
-      rootCause:
-        typeof metadata.rootCause === "string" ? metadata.rootCause : undefined,
-      mitigation:
-        typeof metadata.mitigation === "string" ? metadata.mitigation : undefined,
-    };
-  });
+  const rows = await searchPersistedHistory(env, query, topK);
+  return rows.map((row, index) => ({
+    id: row.id,
+    score: Math.max(0.35, 0.65 - index * 0.06),
+    incidentId: row.incidentId ?? undefined,
+    rootCause: row.rootCause ?? undefined,
+    mitigation: row.mitigation ?? undefined,
+    source: "d1" as const,
+  }));
 }
