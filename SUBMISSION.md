@@ -70,19 +70,25 @@ Org Brain uses bounded specialists instead of an unconstrained autonomous loop:
 
 The orchestrator runs only relevant specialists and caps execution to avoid uncontrolled agent loops.
 
+## Scenario Lab
+
+The submitted demo includes three complete, deterministic incident packs rather than one hard-coded happy path:
+
+| Scenario | Failure mode | Strongest evidence | Correlated change |
+| --- | --- | --- | --- |
+| `INC-2409` | sequential validation latency | 3.4s document span, consumer lag | `DEP-2198` / `8fc19b2` |
+| `INC-2417` | database pool exhaustion | 1.98s connection acquisition, 31 pending requests | `DEP-2214` / `c41db71` |
+| `INC-2424` | retry amplification | five validation attempts, 390 → 1840 rps | `DEP-2231` / `a90ed31` |
+
+Each scenario exposes only observable evidence to the UI. Expected root causes remain in a separate evaluation module and are never imported by runtime/client investigation code.
+
 ## Canonical demo
 
 ### 1. Inject the incident
 
-Open `/scenario-lab` and inject **Claims submission latency spike**.
-
-The scenario exposes symptoms and observable evidence only. Its hidden evaluation answer is not imported by runtime/client code.
+Open `/scenario-lab` and inject **Claims submission latency spike**. The card provides a guided investigation prompt that can be copied directly into Ask.
 
 ### 2. Investigate
-
-Open Ask and submit:
-
-> Why did claims submission latency increase after the latest deployment?
 
 Expected investigation path:
 
@@ -105,22 +111,15 @@ The Cloudflare Workflow is resumed with an external event, approval is stored in
 
 No real deployment rollback or external work item mutation occurs in the demo.
 
-## Expected RCA
+## Why the additional scenarios matter
 
-The seeded evidence is designed to support this conclusion:
+The same specialist architecture now has to reason over materially different causal shapes:
 
-> Sequential document validation introduced in `claims-worker` increased consumer processing latency, causing queue lag and downstream claim-processing timeouts.
+- **Sequential work in a hot path** — source structure and consumer telemetry align.
+- **Capacity/configuration regression** — connection acquisition dominates while CPU remains healthy.
+- **Dependency retry storm** — repeated trace attempts and request amplification reveal cascading failure rather than a single slow call.
 
-Evidence includes:
-
-- document validation leaf span around 3.4 seconds
-- consumer processing increasing from roughly 42 ms to 890 ms
-- consumer lag increasing from roughly 4,200 to 91,000
-- CPU and memory remaining comparatively stable
-- correlated deployment `DEP-2198`
-- `claims-worker` v3.19.2
-- commit `8fc19b2`
-- source change containing sequential awaits during document validation
+The Change Agent therefore scores multiple source patterns, and the RCA Synthesizer generates scenario-specific mitigations and remediation work instead of returning one canned claims-worker answer.
 
 ## Planning demo
 
@@ -141,9 +140,10 @@ This demonstrates that the product is not incident-only. The same organization g
 
 - interactive Next.js portal
 - Agent Elements chat/tool/approval UI
+- three deterministic production incident fixtures
 - deterministic engineering graph traversal
 - five specialist agent boundaries
-- evidence-backed RCA synthesis
+- evidence-backed, failure-mode-specific RCA synthesis
 - Cloudflare Worker API
 - Cloudflare Workflow execution model
 - `waitForEvent` / `sendEvent` approval boundary
@@ -167,6 +167,7 @@ All mocked systems sit behind provider contracts so production adapters can repl
 - relationships are resolved by IDs before LLM reasoning
 - specialists receive bounded structured context instead of raw organization data
 - scenario hidden truth is kept separate from runtime evidence
+- telemetry is scoped to the active failure shape so independent fixtures do not contaminate one another
 - model output cannot create arbitrary engineering relationships
 - approval is distinct from execution
 - external mutation is disabled in the demo
