@@ -42,11 +42,15 @@ This file keeps a small set of representative development commands used for impl
 
 ## Specialist orchestration
 
-> Add a bounded local orchestrator with a Work Agent and Observability Agent. Route only relevant queries to specialists, cap a run to two agents, and keep provider/context traversal deterministic.
+> Add a bounded local orchestrator with separate Work and Observability specialists. Keep runtime evidence analysis separate from source-code attribution, and show specialist activity through Agent Elements tool renderers.
 
-## Agent tool activity
+## Incident change correlation
 
-> Render specialist activity in the existing Agent Elements chat using custom tool renderers for work search, impact resolution, conflict checks, trace inspection, log inspection and metric comparison.
+> Add a Change Agent that starts from the correlated deployment, resolves commits and source snapshots, and scores candidate changes from timing and code structure. Do not import the scenario answer key into runtime code.
+
+## RCA synthesis
+
+> Combine Observability and Change findings into a structured RCA with confidence, supporting and contradictory evidence, a mitigation draft, and a remediation work-item draft. Keep both actions draft-only for now.
 
 ## Scenario review
 
