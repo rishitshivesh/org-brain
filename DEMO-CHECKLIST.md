@@ -36,66 +36,29 @@ Start Next.js:
 yarn dev
 ```
 
-Open the Worker health endpoint and confirm it responds before the demo:
+Confirm `GET http://localhost:8787/health` responds before the demo.
 
-```text
-GET http://localhost:8787/health
-```
+## 3. Primary demo — Incident RCA
 
-## 3. Demo path A — Incident RCA
+Open `/scenario-lab`, inject **Claims submission latency spike**, copy its guided Ask prompt, then open `/` and submit it.
 
-### Inject
+Expected evidence:
 
-Open `/scenario-lab`.
-
-Inject:
-
-**Claims submission latency spike**
-
-Confirm the injected incident is visible and the hidden evaluation/root-cause answer is not displayed.
-
-### Ask
-
-Open `/` and submit exactly:
-
-> Why did claims submission latency increase after the latest deployment?
-
-### What should visibly happen
-
-The Ask surface should show bounded specialist/tool activity including:
-
-- specialist selection
-- trace inspection
-- logs inspection
-- metric comparison
-- deployment inspection
-- commit inspection
-- source-change inspection
-- change correlation
-- RCA synthesis
-- mitigation/remediation preparation
-
-### Expected evidence
-
-Verify the response connects these real seeded references:
-
-- incident `INC-2409`
-- trace `tr_8b92f17c`
-- deployment `DEP-2198`
+- `INC-2409`
+- `tr_8b92f17c`
+- `DEP-2198`
 - `claims-worker` v3.19.2
 - commit `8fc19b2`
-- document validation source change
-- consumer processing approximately `42 ms → 890 ms`
-- consumer lag approximately `4,200 → 91,000`
-- CPU/memory remaining comparatively stable
+- sequential document validation
+- consumer processing `42 ms → 890 ms`
+- consumer lag `4,200 → 91,000`
+- CPU/memory comparatively stable
 
-The conclusion should attribute the strongest cause to sequential document validation rather than merely saying “the service was slow.”
+The conclusion should attribute the strongest cause to sequential document validation rather than merely saying the service was slow.
 
-## 4. Demo path B — Human approval
+## 4. Human approval
 
-After RCA synthesis, choose:
-
-**Mitigation + remediation**
+After RCA synthesis choose **Mitigation + remediation**.
 
 Verify:
 
@@ -104,11 +67,49 @@ Verify:
 - the Workflow resumes after approval
 - remediation is prepared for provider handoff
 - no external rollback is executed
-- no external Azure DevOps work item is actually created
+- no external Azure DevOps item is created
 
 The safety story matters: Org Brain proposes, a human approves, execution remains a separate boundary.
 
-## 5. Demo path C — Planning intelligence
+## 5. Secondary scenario — Database pool exhaustion
+
+Inject **Intermittent checkout timeouts** and use its guided prompt.
+
+Expected investigation path:
+
+- `INC-2417`
+- `tr_4cc71d02`
+- `DEP-2214`
+- commit `c41db71`
+- `db.acquireConnection` is the dominant leaf span
+- pool max `24 → 6`
+- pending acquisitions `1 → 31`
+- checkout p95 `312 ms → 2260 ms`
+- CPU stays close to baseline
+
+Expected RCA: a capacity regression caused by an undersized connection pool, not generic CPU or database-server saturation.
+
+## 6. Secondary scenario — Retry amplification
+
+Inject **Cascading downstream failures** and use its guided prompt.
+
+Expected investigation path:
+
+- `INC-2424`
+- `tr_92f4ad10`
+- `DEP-2231`
+- commit `a90ed31`
+- five document validation attempts in one request path
+- document requests per claim `1.1 → 4.7`
+- document-service traffic `390 → 1840 rps`
+- document-service error rate `0.8% → 18.6%`
+- ADR-031 requires bounded exponential backoff
+
+Expected RCA: near-immediate retries amplify an existing dependency failure into a broader traffic and latency cascade.
+
+Only show one secondary scenario in the recorded demo unless there is time. Having all three available is useful for reviewer exploration.
+
+## 7. Planning intelligence
 
 Submit:
 
@@ -124,7 +125,7 @@ Expected context:
 
 This proves Org Brain is broader than incident RCA.
 
-## 6. Optional 30-second graph tour
+## 8. Optional 30-second graph tour
 
 Open `/graph` and show:
 
@@ -132,17 +133,13 @@ Open `/graph` and show:
 Incident → Deployment → Commit → Work Item
 ```
 
-Then briefly show service dependency/blast-radius context.
+Then briefly show service dependency/blast-radius context. The graph proves the relationships are explicit rather than invented by the LLM.
 
-Do not spend the demo reading every card. The graph exists to prove the relationships are explicit rather than invented by the LLM.
-
-## 7. Submission explanation
-
-Use this short description if the form asks what you built:
+## 9. Submission explanation
 
 > Org Brain is an AI-powered engineering intelligence workspace that connects work items, services, deployments, source changes, observability, incidents and architecture decisions. It resolves explicit engineering relationships programmatically, runs bounded specialist agents for work, observability, change, dependency and knowledge analysis, then uses Workers AI to synthesize evidence. Cloudflare Workflows and Durable Objects keep investigations durable and pause RCA actions for explicit human approval before any provider handoff.
 
-## 8. Cloudflare products to name
+## 10. Cloudflare products to name
 
 - Workers
 - Workers AI
@@ -152,7 +149,7 @@ Use this short description if the form asks what you built:
 
 Do not claim D1 or Vectorize are implemented unless they are actually added before submission.
 
-## 9. Files reviewers should see
+## 11. Files reviewers should see
 
 - `SUBMISSION.md`
 - `README.md`
@@ -167,11 +164,14 @@ Do not claim D1 or Vectorize are implemented unless they are actually added befo
 - `lib/context-builders.ts`
 - `data/scenarios/`
 
-## 10. Final ten-minute sanity pass
+## 12. Final ten-minute sanity pass
 
 - refresh the page during/after an investigation
 - test `Cmd/Ctrl + K`
 - verify long chat and tables scroll correctly
+- verify all three Scenario Lab fixtures show as seeded
+- verify each scenario opens the correct incident
+- verify guided prompt copy works
 - verify no console-breaking client error
 - verify approval question is clickable
 - verify Cloudflare/local badge is correct
@@ -180,14 +180,3 @@ Do not claim D1 or Vectorize are implemented unless they are actually added befo
 - verify `.env.local` is ignored
 - verify scenario answer key is not imported client-side
 - open repository in an incognito/logged-out context if reviewers need public access
-
-## Do not spend remaining time on
-
-- more visual redesign
-- more specialist agents
-- full Azure DevOps integration
-- real rollback execution
-- migrating all seed data to a database
-- adding eight more scenarios
-
-A stable, explainable end-to-end path is worth far more than another half-finished subsystem.
