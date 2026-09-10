@@ -1,6 +1,7 @@
 "use client";
 
-import { Brain, History, Search } from "lucide-react";
+import { Brain, FilePenLine, History, Search } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +20,9 @@ export default function HistoryPage() {
   const configured = isCloudflareRuntimeConfigured();
   const [history, setHistory] = useState<RemoteHistoryItem[]>([]);
   const [memory, setMemory] = useState<RemoteMemoryMatch[]>([]);
-  const [query, setQuery] = useState("Have we seen a similar claims latency incident before?");
+  const [query, setQuery] = useState(
+    "Have we seen a similar claims latency incident before?",
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,7 +33,9 @@ export default function HistoryPage() {
     try {
       setHistory(await getRemoteHistory());
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to load history");
+      setError(
+        cause instanceof Error ? cause.message : "Unable to load history",
+      );
     } finally {
       setLoading(false);
     }
@@ -43,7 +48,9 @@ export default function HistoryPage() {
     try {
       setMemory(await searchRemoteMemory(query.trim()));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to search memory");
+      setError(
+        cause instanceof Error ? cause.message : "Unable to search memory",
+      );
     } finally {
       setLoading(false);
     }
@@ -61,7 +68,12 @@ export default function HistoryPage() {
         title="Investigation History"
         description="Completed investigations are persisted to D1 when bound and their RCA summaries can be retrieved semantically through Vectorize."
         actions={
-          <Button variant="outline" size="sm" onClick={() => void loadHistory()} disabled={!configured || loading}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void loadHistory()}
+            disabled={!configured || loading}
+          >
             <History className="size-4" /> Refresh
           </Button>
         }
@@ -72,42 +84,82 @@ export default function HistoryPage() {
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
               <CardTitle className="text-base">Durable investigations</CardTitle>
-              <Badge variant="outline">{configured ? `${history.length} loaded` : "runtime offline"}</Badge>
+              <Badge variant="outline">
+                {configured ? `${history.length} loaded` : "runtime offline"}
+              </Badge>
             </div>
           </CardHeader>
           <CardContent className="portal-scroll max-h-[68svh] space-y-3 overflow-y-auto">
             {!configured ? (
               <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
-                Configure NEXT_PUBLIC_ORG_BRAIN_API_URL to read Cloudflare history.
+                Configure NEXT_PUBLIC_ORG_BRAIN_API_URL to read Cloudflare
+                history.
               </p>
             ) : history.length ? (
               history.map((item) => (
-                <div key={item.id} className="portal-card-hover rounded-xl border bg-background/55 p-4">
+                <div
+                  key={item.id}
+                  className="portal-card-hover rounded-xl border bg-background/55 p-4"
+                >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs text-muted-foreground">{item.incidentId ?? item.id}</span>
-                      <Badge variant="secondary" className="font-normal">{item.status}</Badge>
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {item.incidentId ?? item.id}
+                      </span>
+                      <Badge variant="secondary" className="font-normal">
+                        {item.status}
+                      </Badge>
                     </div>
-                    {item.confidence != null ? <Badge variant="outline">{item.confidence}% RCA</Badge> : null}
+                    {item.confidence != null ? (
+                      <Badge variant="outline">{item.confidence}% RCA</Badge>
+                    ) : null}
                   </div>
                   <p className="mt-3 text-sm font-medium">{item.query}</p>
-                  {item.rootCause ? <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.rootCause}</p> : null}
+                  {item.rootCause ? (
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                      {item.rootCause}
+                    </p>
+                  ) : null}
                   {item.remediationTitle ? (
-                    <div className="mt-3 rounded-lg border bg-muted/20 p-3 text-xs">
-                      <span className="text-muted-foreground">Remediation · </span>{item.remediationTitle}
+                    <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border bg-muted/20 p-3 text-xs">
+                      <p>
+                        <span className="text-muted-foreground">
+                          Remediation ·{" "}
+                        </span>
+                        {item.remediationTitle}
+                      </p>
+                      {item.status === "waiting-approval" ? (
+                        <Button
+                          render={
+                            <Link
+                              href={`/remediation/${encodeURIComponent(item.id)}`}
+                            />
+                          }
+                          variant="ghost"
+                          size="sm"
+                        >
+                          <FilePenLine className="size-3.5" /> Review
+                        </Button>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>
               ))
             ) : (
-              <p className="text-sm text-muted-foreground">{loading ? "Loading investigation history…" : "No D1-backed investigations yet."}</p>
+              <p className="text-sm text-muted-foreground">
+                {loading
+                  ? "Loading investigation history…"
+                  : "No D1-backed investigations yet."}
+              </p>
             )}
           </CardContent>
         </Card>
 
         <Card className="border-foreground/10 bg-card/85 shadow-none">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><Brain className="size-4" /> Semantic memory</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Brain className="size-4" /> Semantic memory
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -117,24 +169,48 @@ export default function HistoryPage() {
                 className="min-h-24 w-full resize-none rounded-xl border bg-background/60 p-3 text-sm outline-none transition focus:border-foreground/30"
                 placeholder="Search prior RCAs…"
               />
-              <Button className="w-full" onClick={() => void searchMemory()} disabled={!configured || loading || !query.trim()}>
+              <Button
+                className="w-full"
+                onClick={() => void searchMemory()}
+                disabled={!configured || loading || !query.trim()}
+              >
                 <Search className="size-4" /> Search Vectorize memory
               </Button>
             </div>
 
-            {error ? <p className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">{error}</p> : null}
+            {error ? (
+              <p className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
+                {error}
+              </p>
+            ) : null}
 
             <div className="space-y-2">
               {memory.map((match) => (
-                <div key={match.id} className="rounded-xl border bg-muted/20 p-3">
+                <div
+                  key={match.id}
+                  className="rounded-xl border bg-muted/20 p-3"
+                >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-xs">{match.incidentId ?? match.id}</span>
-                    <Badge variant="outline">{Math.round(match.score * 100)}%</Badge>
+                    <span className="font-mono text-xs">
+                      {match.incidentId ?? match.id}
+                    </span>
+                    <Badge variant="outline">
+                      {Math.round(match.score * 100)}%
+                    </Badge>
                   </div>
-                  {match.rootCause ? <p className="mt-2 text-xs leading-5 text-muted-foreground">{match.rootCause}</p> : null}
+                  {match.rootCause ? (
+                    <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                      {match.rootCause}
+                    </p>
+                  ) : null}
                 </div>
               ))}
-              {configured && !memory.length ? <p className="text-xs leading-5 text-muted-foreground">Vector search results appear here once MEMORY is bound and investigations have been indexed.</p> : null}
+              {configured && !memory.length ? (
+                <p className="text-xs leading-5 text-muted-foreground">
+                  Vector search results appear here once MEMORY is bound and
+                  investigations have been indexed.
+                </p>
+              ) : null}
             </div>
           </CardContent>
         </Card>
