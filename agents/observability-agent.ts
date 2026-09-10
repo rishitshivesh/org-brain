@@ -1,4 +1,5 @@
 import { buildIncidentContext } from "@/lib/context-builders";
+import type { MetricComparison } from "@/types/org-brain";
 import type { OrgBrainProviders } from "@/providers/types";
 
 import type { SpecialistAgentResult } from "./types";
@@ -8,6 +9,32 @@ const incidentPattern = /INC-\d+/i;
 function ratio(before: number, after: number): number {
   if (before === 0) return after === 0 ? 1 : Number.POSITIVE_INFINITY;
   return after / before;
+}
+
+function scopedMetrics(
+  metrics: MetricComparison[],
+  operations: string[],
+): MetricComparison[] {
+  const operationText = operations.join(" ").toLowerCase();
+
+  if (/db\.|database|checkout/.test(operationText)) {
+    return metrics.filter((metric) =>
+      /^(db_|checkout_|cpu_|memory_)/.test(metric.metric),
+    );
+  }
+
+  const repeatedAttempts = operations.filter((operation) =>
+    /attempt=\d+/i.test(operation),
+  ).length;
+  if (repeatedAttempts >= 2) {
+    return metrics.filter((metric) =>
+      /^(document_|submit_|requests_|error_|cpu_|memory_)/.test(metric.metric),
+    );
+  }
+
+  return metrics.filter((metric) =>
+    /^(consumer_|cpu_|memory_)/.test(metric.metric),
+  );
 }
 
 export async function runObservabilityAgent(
@@ -36,7 +63,11 @@ export async function runObservabilityAgent(
   const slowestSpans = [...candidateSpans]
     .sort((a, b) => b.durationMs - a.durationMs)
     .slice(0, 3);
-  const anomalousMetrics = context.metrics
+  const metrics = scopedMetrics(
+    context.metrics,
+    spans.map((span) => span.operation),
+  );
+  const anomalousMetrics = metrics
     .map((metric) => ({
       ...metric,
       change: ratio(metric.before, metric.after),
@@ -69,7 +100,7 @@ export async function runObservabilityAgent(
       ),
     ...warningLogs.slice(0, 2).map((log) => `${log.id}: ${log.message}`),
   ];
-  const evidenceAgainst = context.metrics
+  const evidenceAgainst = metrics
     .filter(
       (metric) =>
         metric.metric.includes("cpu") || metric.metric.includes("memory"),
@@ -166,7 +197,7 @@ export async function runObservabilityAgent(
         ? `I also found **${warningLogs.length} warning/error logs** on the correlated trace.`
         : "No warning/error logs were correlated to the trace.",
       evidenceAgainst.length
-        ? `CPU/memory evidence does not support general resource saturation: ${evidenceAgainst.join(", ")}.`
+        ? `Resource evidence that stayed near baseline: ${evidenceAgainst.join(", ")}.`
         : "",
       "",
       "This localizes the runtime problem. Source attribution is handled separately by the Change Agent.",
