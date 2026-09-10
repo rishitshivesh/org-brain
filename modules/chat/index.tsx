@@ -4,12 +4,13 @@ import type { ChatStatus, UIMessage } from "ai";
 import { Boxes, GitBranch, Network, Sparkles } from "lucide-react";
 import { useState } from "react";
 
+import { runOrchestrator, type OrchestrationResult } from "@/agents";
 import { AgentChat } from "@/components/agent-elements/agent-chat";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { orgBrainData } from "@/lib/org-brain";
-import { resolveOrgQuery } from "@/lib/query-resolver";
 import { PageHeader } from "@/modules/common/page-header";
+import { orgToolRenderers } from "@/modules/chat/org-tool-renderers";
 import { orgBrainProviders } from "@/providers";
 
 const initialMessages: UIMessage[] = [
@@ -19,7 +20,7 @@ const initialMessages: UIMessage[] = [
     parts: [
       {
         type: "text",
-        text: "I can resolve seeded work, service, deployment and incident relationships without an LLM. Try one of the prompts below, or ask about `ADO-4231`, `INC-2409`, `DEP-2198`, or `claims-worker`.",
+        text: "The first specialist layer is connected. I can route work-planning questions to the Work Agent and incident/runtime questions to the Observability Agent while keeping all source context deterministic.",
       },
     ],
   },
@@ -48,7 +49,7 @@ const promptSuggestions = [
   },
 ];
 
-function message(role: "user" | "assistant", text: string): UIMessage {
+function textMessage(role: "user" | "assistant", text: string): UIMessage {
   return {
     id: crypto.randomUUID(),
     role,
@@ -56,28 +57,63 @@ function message(role: "user" | "assistant", text: string): UIMessage {
   };
 }
 
+function assistantRunMessage(result: OrchestrationResult): UIMessage {
+  const parts: unknown[] = [];
+
+  if (result.plan.agents.length) {
+    parts.push({
+      type: "tool-mcp__user-tools__select_specialists",
+      toolCallId: crypto.randomUUID(),
+      state: "output-available",
+      input: { intent: result.plan.intent, reason: result.plan.reason },
+      output: { agents: result.plan.agents },
+    });
+  }
+
+  for (const run of result.runs) {
+    for (const tool of run.tools) {
+      parts.push({
+        type: `tool-mcp__user-tools__${tool.name}`,
+        toolCallId: tool.id,
+        state: "output-available",
+        input: tool.input,
+        output: tool.output,
+      });
+    }
+  }
+
+  parts.push({ type: "text", text: result.answer });
+
+  return {
+    id: crypto.randomUUID(),
+    role: "assistant",
+    parts,
+  } as UIMessage;
+}
+
 export function ChatExample() {
   const [messages, setMessages] = useState<UIMessage[]>(initialMessages);
   const [status, setStatus] = useState<ChatStatus>("ready");
-  const [lastIntent, setLastIntent] = useState<string>("deterministic-query");
+  const [lastIntent, setLastIntent] = useState<string>("orchestrator-ready");
+  const [activeAgents, setActiveAgents] = useState<string[]>([]);
 
   async function handleSend(input: { role: "user"; content: string }) {
     if (!input.content.trim()) return;
 
-    const userMessage = message("user", input.content);
-    setMessages((current) => [...current, userMessage]);
+    setMessages((current) => [...current, textMessage("user", input.content)]);
     setStatus("submitted");
 
     try {
-      const result = await resolveOrgQuery(orgBrainProviders, input.content);
-      setLastIntent(result.intent);
-      setMessages((current) => [...current, message("assistant", result.answer)]);
+      const result = await runOrchestrator(orgBrainProviders, input.content);
+      setLastIntent(result.plan.intent);
+      setActiveAgents(result.plan.agents);
+      setMessages((current) => [...current, assistantRunMessage(result)]);
     } catch {
       setMessages((current) => [
         ...current,
-        message(
+        textMessage(
           "assistant",
-          "I could not resolve that query from the seeded organization model. No fallback LLM is connected yet.",
+          "The local orchestration run failed before any remote model call. The deterministic data remains unchanged.",
         ),
       ]);
     } finally {
@@ -89,8 +125,8 @@ export function ChatExample() {
     <div className="min-h-full bg-background">
       <PageHeader
         eyebrow="Ask Org Brain"
-        title="Engineering context, in one place"
-        description="Queries are resolved from explicit work, service, deployment and observability relationships before any agent or LLM is involved."
+        title="Engineering context, coordinated"
+        description="The orchestrator now dispatches bounded specialists over deterministic organization context. Workers AI is deliberately not connected yet."
       />
 
       <div className="grid min-h-[calc(100vh-11rem)] gap-4 p-6 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -110,6 +146,7 @@ export function ChatExample() {
               onSend={handleSend}
               onStop={() => setStatus("ready")}
               suggestions={{ items: promptSuggestions }}
+              toolRenderers={orgToolRenderers}
               showCopyToolbar
               initialScrollBehavior="bottom"
             />
@@ -143,9 +180,29 @@ export function ChatExample() {
             </CardContent>
           </Card>
 
+          <Card className="shadow-none">
+            <CardHeader>
+              <CardTitle className="text-sm">Last orchestration</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {activeAgents.length ? (
+                activeAgents.map((agent) => (
+                  <div key={agent} className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm">
+                    <span className="capitalize">{agent} Agent</span>
+                    <Badge variant="secondary">completed</Badge>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm leading-6 text-muted-foreground">
+                  No specialist was needed for the last query. The deterministic resolver handled it directly.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
           <Card className="border-dashed shadow-none">
             <CardContent className="p-4 text-sm leading-6 text-muted-foreground">
-              This is intentionally not an agent yet. The same Agent Elements surface is now exercising the deterministic context layer that future specialist agents will consume.
+              Specialist runs are intentionally bounded to two agents. The Observability Agent can localize a bottleneck, but source-code attribution is reserved for the upcoming Change Agent.
             </CardContent>
           </Card>
         </div>

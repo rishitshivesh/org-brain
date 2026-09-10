@@ -1,0 +1,111 @@
+import { buildIncidentContext } from "@/lib/context-builders";
+import type { OrgBrainProviders } from "@/providers/types";
+
+import type { SpecialistAgentResult } from "./types";
+
+const incidentPattern = /INC-\d+/i;
+
+function ratio(before: number, after: number): number {
+  if (before === 0) return after === 0 ? 1 : Number.POSITIVE_INFINITY;
+  return after / before;
+}
+
+export async function runObservabilityAgent(
+  providers: OrgBrainProviders,
+  query: string,
+): Promise<SpecialistAgentResult | null> {
+  const requestedIncidentId = query.match(incidentPattern)?.[0].toUpperCase();
+  const incidents = await providers.incidents.list();
+  const incident = requestedIncidentId
+    ? await providers.incidents.getById(requestedIncidentId)
+    : incidents[0] ?? null;
+
+  if (!incident) return null;
+
+  const context = await buildIncidentContext(providers, incident.id);
+  if (!context) return null;
+
+  const spans = context.traces.flatMap((trace) => trace.spans);
+  const slowestSpans = [...spans].sort((a, b) => b.durationMs - a.durationMs).slice(0, 3);
+  const anomalousMetrics = context.metrics
+    .map((metric) => ({ ...metric, change: ratio(metric.before, metric.after) }))
+    .filter((metric) => metric.change >= 1.5)
+    .sort((a, b) => b.change - a.change);
+  const warningLogs = context.logs.filter((log) => log.level === "warn" || log.level === "error");
+
+  const slowest = slowestSpans[0];
+  const slowestService = slowest
+    ? context.traceServices.find((service) => service.id === slowest.serviceId)
+    : undefined;
+
+  const bottleneck = slowest
+    ? `${slowestService?.name ?? slowest.serviceId} · ${slowest.operation} (${slowest.durationMs} ms)`
+    : "No trace bottleneck found";
+
+  return {
+    agent: "observability",
+    references: [
+      incident.id,
+      ...context.traces.map((trace) => trace.id),
+      ...warningLogs.map((log) => log.id),
+    ],
+    tools: [
+      {
+        id: `trace-${incident.id}`,
+        name: "inspect_trace",
+        input: { incidentId: incident.id, traceIds: context.traces.map((trace) => trace.id) },
+        output: {
+          services: context.traceServices.map((service) => service.name),
+          slowestSpans: slowestSpans.map((span) => ({
+            service: context.traceServices.find((service) => service.id === span.serviceId)?.name ?? span.serviceId,
+            operation: span.operation,
+            durationMs: span.durationMs,
+            status: span.status,
+          })),
+        },
+      },
+      {
+        id: `logs-${incident.id}`,
+        name: "inspect_logs",
+        input: { incidentId: incident.id },
+        output: {
+          total: context.logs.length,
+          warningsAndErrors: warningLogs.map((log) => ({ id: log.id, level: log.level, message: log.message })),
+        },
+      },
+      {
+        id: `metrics-${incident.id}`,
+        name: "compare_metrics",
+        input: { serviceIds: context.traceServices.map((service) => service.id) },
+        output: {
+          anomalies: anomalousMetrics.map((metric) => ({
+            metric: metric.metric,
+            before: metric.before,
+            after: metric.after,
+            unit: metric.unit,
+            multiple: Number(metric.change.toFixed(1)),
+          })),
+        },
+      },
+    ],
+    summary: [
+      `### Observability Agent\n`,
+      `The strongest runtime bottleneck is **${bottleneck}**.`,
+      "",
+      anomalousMetrics.length
+        ? `The largest metric shifts are ${anomalousMetrics
+            .slice(0, 3)
+            .map(
+              (metric) =>
+                `**${metric.metric}** ${metric.before}${metric.unit ?? ""} → ${metric.after}${metric.unit ?? ""} (${metric.change.toFixed(1)}×)`,
+            )
+            .join(", ")}.`
+        : "No large metric regression was found in the seeded comparisons.",
+      warningLogs.length
+        ? `I also found **${warningLogs.length} warning/error logs** on the correlated trace.`
+        : "No warning/error logs were correlated to the trace.",
+      "",
+      "This localizes the runtime problem, but does not yet attribute it to a code change. That belongs to the Change Agent.",
+    ].join("\n"),
+  };
+}

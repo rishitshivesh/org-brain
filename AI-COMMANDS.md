@@ -40,6 +40,14 @@ This file keeps a small set of representative development commands used for impl
 
 > Make a small set of Ask prompts work without an LLM. Resolve work-item conflicts, service dependencies, incident trace/deployment/commit context and deployment changes, then clearly stop before agent reasoning would begin.
 
+## Specialist orchestration
+
+> Add a bounded local orchestrator with a Work Agent and Observability Agent. Route only relevant queries to specialists, cap a run to two agents, and keep provider/context traversal deterministic.
+
+## Agent tool activity
+
+> Render specialist activity in the existing Agent Elements chat using custom tool renderers for work search, impact resolution, conflict checks, trace inspection, log inspection and metric comparison.
+
 ## Scenario review
 
 > Review the seeded incident end to end. Verify timestamps, trace IDs, service relationships, deployment versions, commit references and work-item links are internally consistent, and keep public scenario metadata separate from the evaluation answer key.
