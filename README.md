@@ -1,190 +1,223 @@
 # Org Brain
 
-Org Brain is an engineering intelligence workspace that connects work items, services, repositories, deployments, observability and architectural decisions into one navigable context model.
+Org Brain is an AI-powered engineering intelligence workspace that connects work items, services, repositories, deployments, traces, logs, metrics, incidents and architecture decisions into one coordinated context model.
 
-The project is deliberately programmatic first. Entity relationships are resolved through IDs and graph edges before a model is allowed to reason over the resulting context.
+The design rule is simple: **programmatic first, AI second**. Explicit relationships are resolved through provider contracts and graph edges before Workers AI is allowed to reason over the resulting evidence.
 
-> **Reviewer shortcuts:** start with [`SUBMISSION.md`](./SUBMISSION.md) for the architecture and assignment framing, then use [`DEMO-CHECKLIST.md`](./DEMO-CHECKLIST.md) for the exact 3–5 minute demo path. Representative AI-assisted development prompts are documented in [`AI-COMMANDS.md`](./AI-COMMANDS.md).
+> **Reviewer shortcuts:** start with [`SUBMISSION.md`](./SUBMISSION.md), use [`DEMO-CHECKLIST.md`](./DEMO-CHECKLIST.md) for the demo path, and see [`AI-COMMANDS.md`](./AI-COMMANDS.md) for representative AI-assisted development prompts.
 
-## Current milestone
+## What is implemented
 
-The frontend, mock provider layer, deterministic organization-context builders, five bounded specialist roles and the Cloudflare investigation runtime are now in place.
+- Next.js portal using Agent Elements
+- Work, incidents, services, graph, knowledge and Scenario Lab surfaces
+- three deterministic incident evidence packs
+- five bounded specialists: Work, Observability, Change, Dependency and Knowledge
+- evidence-backed RCA synthesis with hidden-truth evaluation
+- Cloudflare Worker API
+- Cloudflare Workflows orchestration and `waitForEvent` approval pause/resume
+- Durable Object per-investigation state
+- D1-backed organization provider adapter, investigation history and provider-handoff ledger
+- Vectorize organizational memory for prior RCAs, ADRs and work items, with D1 history fallback
+- Workers AI Llama 3.3 synthesis through AI Gateway
+- editable remediation drafts before approval
+- generated feature/story work packages for planning questions
+- explicit human approval before provider handoff
+- local deterministic fallback when the Cloudflare runtime is not configured
 
-Incident questions run through separate Observability and Change specialists before RCA synthesis. Dependency and Knowledge specialists are added when a query asks for blast-radius or architecture context. RCA mitigation/remediation actions require an explicit human approval decision in the Agent Elements chat.
+## Portal surfaces
 
-When `NEXT_PUBLIC_ORG_BRAIN_API_URL` is configured, the Ask workspace starts a durable Cloudflare investigation instead of executing the local orchestrator directly. The Worker starts a Workflow, stores investigation state in a Durable Object, resolves deterministic engineering context, optionally grounds the final answer with Workers AI through AI Gateway, then pauses RCA investigations for approval. Without the runtime URL, the existing local path remains available for frontend development.
+- `/` — Ask Org Brain, specialist activity, RCA and approval
+- `/work` — work intelligence and conflicts
+- `/incidents` — incident evidence and change context
+- `/services` — service catalog and dependencies
+- `/graph` — explicit organization relationships
+- `/knowledge` — architecture decisions
+- `/scenario-lab` — repeatable deterministic failures
+- `/history` — D1 investigation history + organization memory search
+- `/handoffs` — approved D1-backed provider handoff ledger
+- `/evaluations` — hidden-truth RCA regression scoring
+- `/architecture` — reviewer-facing system design
+- `/runtime` — live Worker/binding health
+- `/remediation/[id]` — editable durable remediation draft while an RCA waits for approval
 
-The portal interaction layer is also in place: one viewport scroll owner, contained table/chat context scrolling, route-entry motion, staggered surfaces, subtle ambient motion, reduced-motion support, responsive horizontal graph browsing and a working `Cmd/Ctrl + K` command palette.
-
-Available surfaces:
-
-- `/` — Agent Elements-based Ask workspace with specialist activity, durable investigations, RCA synthesis and approval gating
-- `/work` — Azure DevOps-style work intelligence, filtering and conflict visibility
-- `/incidents` — operational incidents linked to traces and deployments
-- `/services` — service catalog with ownership, repositories and dependencies
-- `/graph` — scoped organization relationship views
-- `/knowledge` — architecture decisions and durable engineering context
-- `/scenario-lab` — deterministic incident fixture injection
-
-## Data model
-
-The current engineering dataset is backed by `data/seed/org-brain.seed.json` and the extensible types in `types/org-brain.ts`.
-
-The seed contains a coherent engineering slice across teams, repositories, services, work items, commits, source snapshots, deployments, incidents, traces, logs, metrics and architecture decisions.
-
-Investigation lifecycle types live in `types/investigation.ts` and deliberately remain separate from organization entities.
-
-## Provider layer
-
-Mock organization data is exposed through provider contracts under `providers/` rather than consumed directly by the agent layer. Future Azure DevOps, GitHub, Elastic and ClickHouse adapters can replace these implementations without changing context-builder or specialist APIs.
-
-## Deterministic context
-
-`lib/context-builders.ts` assembles bounded contexts for work planning, service analysis, deployment/change analysis and incident investigation.
-
-The incident builder resolves traces, participating services, deployments, commits, linked work, logs, metrics, architecture decisions and source changes. These relationships are resolved before Workers AI sees the evidence.
-
-## Specialist flow
-
-The orchestrator caps each query at three specialist runs.
-
-Current specialists:
-
-- Work Agent — requirement impact, conflicts and linked work context
-- Observability Agent — traces, logs, metrics and runtime bottleneck localization
-- Change Agent — deployment timing, commits, source snapshots and change correlation
-- Dependency Agent — explicit upstream/downstream traversal and bounded blast-radius analysis
-- Knowledge Agent — durable ADRs and architecture constraints
-
-For incident/RCA queries the core path is:
+## Architecture
 
 ```text
-query
+Engineer
+  ↓
+Next.js + Agent Elements
   ↓
 Cloudflare Worker
   ↓
 Investigation Workflow
   ↓
-deterministic context + specialist execution
+D1-backed provider contracts
   ↓
-Workers AI synthesis through AI Gateway
+bounded specialists
+  ├─ Work
+  ├─ Observability
+  ├─ Change
+  ├─ Dependency
+  └─ Knowledge
   ↓
-RCA + mitigation/remediation drafts
+Vectorize / D1 historical memory
   ↓
-Workflow waits for human approval
+Workers AI through AI Gateway
   ↓
-approval event resumes workflow
+Durable Object investigation state
   ↓
-provider handoff eligibility only
+waitForEvent(human approval)
+  ↓
+latest editable remediation draft
+  ↓
+D1 provider handoff ledger
+  ↓
+historical RCA memory
 ```
 
-The Change Agent does not read the scenario evaluation answer key. Workers AI receives compact structured evidence and is instructed not to manufacture IDs, metrics or causal claims.
+The same specialist/context code runs against mock providers locally and a D1-backed provider implementation in the Cloudflare Workflow. External Azure DevOps, GitHub, Elastic/ClickHouse and deployment adapters remain intentionally outside the demo mutation boundary.
 
-## Cloudflare runtime
+## Investigation flow
 
-The Worker entrypoint is `cloudflare/index.ts` and its infrastructure is defined in `wrangler.jsonc`.
-
-Bindings:
-
-- `AI` — Workers AI
-- `INVESTIGATIONS` — SQLite-backed Durable Object namespace using `InvestigationStateObject`
-- `INVESTIGATION_WORKFLOW` — `InvestigationWorkflow`
-
-The runtime exposes:
+For RCA questions the system keeps observation, source attribution and synthesis separate:
 
 ```text
-GET  /health
-POST /v1/investigations
-GET  /v1/investigations/:id
-POST /v1/investigations/:id/approval
+query
+  ↓
+Observability Agent
+  → trace / logs / metrics
+
+Change Agent
+  → deployment / commit / source
+
+Dependency + Knowledge Agents when relevant
+  ↓
+RCA Synthesizer
+  ↓
+Workers AI grounded explanation
+  ↓
+editable mitigation/remediation draft
+  ↓
+Workflow waits for approval
+  ↓
+provider handoff record
+  ↓
+D1 + Vectorize organizational memory
 ```
 
-`POST /v1/investigations` returns an investigation ID immediately. The frontend polls the durable state until an orchestration result is available. RCA investigations then remain in `waiting-approval` until the approval endpoint sends the `rca-approval` event to the Workflow.
+Historical memory is precedent only. It is explicitly prevented from becoming proof that the current incident has the same cause.
 
-Approval and execution remain separate. A completed approval can mark mitigation as eligible or prepare a remediation draft, but this runtime does not roll back a deployment or mutate an external work tracker.
+## Scenario Lab
 
-### Run the Worker locally
+The three seeded scenarios have separate traces, logs, metrics, deployments, commits and source snapshots:
 
-Authenticate Wrangler first if required, then run:
+1. sequential document validation regression
+2. database connection-pool exhaustion
+3. retry amplification / cascading dependency failure
 
-```bash
-yarn cf:dev
-```
+Public scenario metadata is separate from `data/scenarios/evaluation.ts`. Runtime agents never import the hidden expected answer.
 
-The checked-in minimal `cloudflare/runtime-types.d.ts` keeps the repository type surface independent of a permanent Wrangler dependency. When using Wrangler locally, generated binding types can be refreshed with:
+## Evaluation
 
-```bash
-yarn cf:types
-```
+`/evaluations` executes the same orchestrator used by the application and scores the resulting RCA against hidden scenario contracts. The browser receives only aggregate rubric results, not the answer key.
 
-### Connect the Next.js frontend
+Dimensions include evidence coverage, affected-service attribution, deployment attribution, commit/change attribution and causal alignment.
 
-Copy `.env.example` to `.env.local` and point the frontend at the Worker:
+## Cloudflare resources
 
-```bash
-NEXT_PUBLIC_ORG_BRAIN_API_URL=http://localhost:8787
-```
+`wrangler.jsonc` configures:
 
-Restart `yarn dev`. The Ask header will show `Cloudflare` when the remote runtime is enabled and `Local` when it is not.
+- `AI` — Workers AI
+- `DB` — D1, automatically provisioned by current Wrangler when missing
+- `INVESTIGATIONS` — SQLite-backed Durable Object
+- `INVESTIGATION_WORKFLOW` — Cloudflare Workflow
+- `MEMORY` — Vectorize binding added by the repeatable memory setup command
 
-For a deployed frontend, update `ALLOWED_ORIGIN` in the Worker environment/config to the actual frontend origin rather than the localhost default.
-
-### Deploy
-
-```bash
-yarn cf:deploy
-```
-
-After deployment, set the frontend's `NEXT_PUBLIC_ORG_BRAIN_API_URL` to the Worker origin.
-
-The default model configured in `wrangler.jsonc` is:
+Models:
 
 ```text
 @cf/meta/llama-3.3-70b-instruct-fp8-fast
+@cf/baai/bge-base-en-v1.5
 ```
 
-AI Gateway uses the configured `AI_GATEWAY_ID` (`default` initially) and caching is skipped for investigation synthesis so operational answers are not accidentally reused across incidents.
+### Worker API
 
-## Approval boundary
+```text
+GET   /health
+POST  /v1/investigations
+GET   /v1/investigations/:id
+PATCH /v1/investigations/:id/remediation
+POST  /v1/investigations/:id/approval
+GET   /v1/history
+GET   /v1/memory/search?q=...
+GET   /v1/handoffs
+```
 
-Agent Elements' native Question tool captures approval for mitigation and remediation actions.
+## Run locally
 
-With Cloudflare enabled, the browser sends the selected actions to the Worker. The Worker forwards them to the existing Workflow instance as an event, and the UI waits until durable state confirms completion before showing the investigation as completed.
-
-Without Cloudflare enabled, the same UI continues to use the local approval boundary for development.
-
-## Portal interaction layer
-
-The app shell owns viewport scrolling so long screens do not create nested full-page scrollbars. Tables and side context panels get explicit bounded scroll regions, while graph chains remain horizontally browsable on smaller viewports.
-
-Motion uses the existing CSS/Tailwind stack rather than introducing a runtime animation dependency. Page entry, card stagger, tool activity and scenario state transitions are intentionally subtle and automatically disabled for users requesting reduced motion.
-
-The top bar exposes a keyboard command palette with `Cmd/Ctrl + K` for fast navigation across the same route set used by the sidebar.
-
-## Agent UI
-
-The repository includes the Agent Elements chat surface from 21st.dev. Tool activity is rendered inline for durable Workflow start, specialist selection, trace/log/metric inspection, deployment and commit analysis, source inspection, dependency traversal, architecture constraints, change correlation, RCA synthesis and approval recording.
-
-## Scenario model
-
-Public scenario metadata lives separately from scenario evaluation data. The Scenario Lab imports only symptoms and observable fixture information; the expected RCA/evidence answer key remains isolated for later evaluation.
-
-## Development
+Install and run the frontend:
 
 ```bash
 yarn install
 yarn dev
 ```
 
-Quality checks:
+Start the Cloudflare runtime:
+
+```bash
+yarn cf:dev
+```
+
+Then configure `.env.local`:
+
+```bash
+NEXT_PUBLIC_ORG_BRAIN_API_URL=http://localhost:8787
+```
+
+The Ask header and `/runtime` page clearly show whether the browser is using the Cloudflare runtime or local fallback.
+
+## Persistence setup
+
+D1 tables self-initialize at runtime and the SQL migration is also checked in under `migrations/`.
+
+Vectorize setup is repeatable:
+
+```bash
+yarn cf:memory:setup
+```
+
+The command creates `org-brain-memory` if necessary and adds the `MEMORY` binding to `wrangler.jsonc`.
+
+## Deploy
+
+Authenticate Wrangler and run:
+
+```bash
+yarn cf:deploy
+```
+
+`cf:deploy` ensures the Vectorize memory resource/binding exists before deploying the Worker. Set `ALLOWED_ORIGIN` to the deployed frontend origin and point the frontend's `NEXT_PUBLIC_ORG_BRAIN_API_URL` at the Worker URL.
+
+## Safety boundary
+
+Org Brain does not silently mutate production systems.
+
+- generated remediation and planning work remain drafts
+- remediation can be edited while the Workflow is waiting
+- approval is recorded separately from execution
+- approved remediation becomes a provider handoff record in D1
+- no real rollback or third-party work-item creation happens in the submitted demo
+
+This makes the integration boundary demonstrable without pretending a demo account should be allowed to rearrange production infrastructure for dramatic effect.
+
+## Quality gate
 
 ```bash
 yarn format
 yarn lint
 yarn typecheck
 yarn build
+yarn cf:dev
 ```
 
-## Next milestone
-
-The next phase is persistence and retrieval beyond a single investigation: D1-backed structured organization/investigation data, Vectorize-backed historical RCA/ADR/runbook memory, and a small number of additional coherent Scenario Lab fixtures. External provider writes should remain mocked until the end-to-end approval path has been exercised against the deployed runtime.
+The repository also includes the exact reviewer demo path in [`DEMO-CHECKLIST.md`](./DEMO-CHECKLIST.md).
