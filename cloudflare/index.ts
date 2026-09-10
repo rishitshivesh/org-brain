@@ -57,10 +57,17 @@ function isApprovalAction(value: unknown): value is ApprovalAction {
   return value === "mitigation" || value === "remediation";
 }
 
-function pathId(pathname: string, suffix = ""): string | null {
-  const escaped = suffix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function investigationIdFromPath(pathname: string): string | null {
+  const match = pathname.match(/^\/v1\/investigations\/([^/]+)$/);
+  return match?.[1] ? decodeURIComponent(match[1]) : null;
+}
+
+function investigationChildIdFromPath(
+  pathname: string,
+  child: "approval" | "remediation",
+): string | null {
   const match = pathname.match(
-    new RegExp(`^/v1/investigations/([^/]+)${escaped}$`),
+    new RegExp(`^/v1/investigations/([^/]+)/${child}$`),
   );
   return match?.[1] ? decodeURIComponent(match[1]) : null;
 }
@@ -71,7 +78,18 @@ function isWorkItemDraft(value: unknown): value is WorkItemDraft {
   return (
     typeof draft.type === "string" &&
     typeof draft.title === "string" &&
-    typeof draft.description === "string"
+    draft.title.trim().length > 0 &&
+    draft.title.length <= 180 &&
+    typeof draft.description === "string" &&
+    draft.description.trim().length > 0 &&
+    draft.description.length <= 5000 &&
+    (!draft.acceptanceCriteria ||
+      (Array.isArray(draft.acceptanceCriteria) &&
+        draft.acceptanceCriteria.length <= 30 &&
+        draft.acceptanceCriteria.every(
+          (criterion) =>
+            typeof criterion === "string" && criterion.length <= 500,
+        )))
   );
 }
 
@@ -157,16 +175,21 @@ async function updateRemediation(
   if (!isWorkItemDraft(body?.remediationDraft))
     return json(env, request, { error: "invalid remediation draft" }, 400);
 
+  const remediationDraft = {
+    ...body.remediationDraft,
+    title: body.remediationDraft.title.trim(),
+    description: body.remediationDraft.description.trim(),
+  };
   const result = {
     ...investigation.result,
     rca: {
       ...investigation.result.rca,
-      remediationDraft: body.remediationDraft,
+      remediationDraft,
     },
   };
   const updated = await patchInvestigation(env, investigationId, { result });
   await persistInvestigation(env, updated);
-  await updatePersistedRemediation(env, investigationId, body.remediationDraft);
+  await updatePersistedRemediation(env, investigationId, remediationDraft);
   return json(env, request, { runtime: "cloudflare", investigation: updated });
 }
 
@@ -243,7 +266,11 @@ export default {
         durableState: "InvestigationStateObject",
         persistence: env.DB ? "d1" : "durable-object-only",
         organizationProviders: env.DB ? "d1" : "seed-fallback",
-        memory: env.MEMORY ? "vectorize" : env.DB ? "d1-fallback" : "not-bound",
+        memory: env.MEMORY
+          ? "vectorize"
+          : env.DB
+            ? "d1-fallback"
+            : "not-bound",
       });
     }
 
@@ -272,7 +299,11 @@ export default {
       const matches = await searchInvestigationMemory(env, query);
       return json(env, request, {
         runtime: "cloudflare",
-        memory: env.MEMORY ? "vectorize" : env.DB ? "d1-fallback" : "not-bound",
+        memory: env.MEMORY
+          ? "vectorize"
+          : env.DB
+            ? "d1-fallback"
+            : "not-bound",
         matches,
       });
     }
@@ -281,17 +312,20 @@ export default {
       return createInvestigation(request, env);
     }
 
-    const remediationId = pathId(url.pathname, "/remediation");
+    const remediationId = investigationChildIdFromPath(
+      url.pathname,
+      "remediation",
+    );
     if (request.method === "PATCH" && remediationId) {
       return updateRemediation(request, env, remediationId);
     }
 
-    const approvalId = pathId(url.pathname, "/approval");
+    const approvalId = investigationChildIdFromPath(url.pathname, "approval");
     if (request.method === "POST" && approvalId) {
       return approveInvestigation(request, env, approvalId);
     }
 
-    const investigationId = pathId(url.pathname);
+    const investigationId = investigationIdFromPath(url.pathname);
     if (request.method === "GET" && investigationId) {
       return getInvestigation(request, env, investigationId);
     }
