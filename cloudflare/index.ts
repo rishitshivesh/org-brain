@@ -1,4 +1,5 @@
 import type { ApprovalAction } from "../agents";
+import type { WorkItemDraft } from "../types/org-brain";
 import type {
   CreateInvestigationInput,
   InvestigationApprovalInput,
@@ -7,6 +8,12 @@ import type {
 } from "../types/investigation";
 import type { Env } from "./env";
 import { InvestigationStateObject } from "./investigation-state";
+import { searchInvestigationMemory } from "./memory";
+import {
+  listInvestigationHistory,
+  persistInvestigation,
+  updatePersistedRemediation,
+} from "./persistence";
 import {
   patchInvestigation,
   readInvestigation,
@@ -26,7 +33,7 @@ function corsHeaders(env: Env, request: Request): HeadersInit {
 
   return {
     "access-control-allow-origin": origin,
-    "access-control-allow-methods": "GET,POST,OPTIONS",
+    "access-control-allow-methods": "GET,POST,PATCH,OPTIONS",
     "access-control-allow-headers": "content-type",
     "access-control-max-age": "86400",
     vary: "Origin",
@@ -49,14 +56,22 @@ function isApprovalAction(value: unknown): value is ApprovalAction {
   return value === "mitigation" || value === "remediation";
 }
 
-function investigationIdFromPath(pathname: string): string | null {
-  const match = pathname.match(/^\/v1\/investigations\/([^/]+)$/);
+function pathId(pathname: string, suffix = ""): string | null {
+  const escaped = suffix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = pathname.match(
+    new RegExp(`^/v1/investigations/([^/]+)${escaped}$`),
+  );
   return match?.[1] ? decodeURIComponent(match[1]) : null;
 }
 
-function approvalIdFromPath(pathname: string): string | null {
-  const match = pathname.match(/^\/v1\/investigations\/([^/]+)\/approval$/);
-  return match?.[1] ? decodeURIComponent(match[1]) : null;
+function isWorkItemDraft(value: unknown): value is WorkItemDraft {
+  if (!value || typeof value !== "object") return false;
+  const draft = value as Partial<WorkItemDraft>;
+  return (
+    typeof draft.type === "string" &&
+    typeof draft.title === "string" &&
+    typeof draft.description === "string"
+  );
 }
 
 async function createInvestigation(
@@ -100,7 +115,11 @@ async function createInvestigation(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to start workflow";
-    await patchInvestigation(env, id, { status: "failed", error: message });
+    const failed = await patchInvestigation(env, id, {
+      status: "failed",
+      error: message,
+    });
+    await persistInvestigation(env, failed);
     return json(env, request, { error: message, investigationId: id }, 500);
   }
 }
@@ -118,6 +137,36 @@ async function getInvestigation(
     investigation,
   };
   return json(env, request, response);
+}
+
+async function updateRemediation(
+  request: Request,
+  env: Env,
+  investigationId: string,
+): Promise<Response> {
+  const investigation = await readInvestigation(env, investigationId);
+  if (!investigation?.result?.rca)
+    return json(env, request, { error: "RCA not found" }, 404);
+  if (investigation.status !== "waiting-approval")
+    return json(env, request, { error: "RCA is no longer editable" }, 409);
+
+  const body = (await request.json().catch(() => null)) as {
+    remediationDraft?: unknown;
+  } | null;
+  if (!isWorkItemDraft(body?.remediationDraft))
+    return json(env, request, { error: "invalid remediation draft" }, 400);
+
+  const result = {
+    ...investigation.result,
+    rca: {
+      ...investigation.result.rca,
+      remediationDraft: body.remediationDraft,
+    },
+  };
+  const updated = await patchInvestigation(env, investigationId, { result });
+  await persistInvestigation(env, updated);
+  await updatePersistedRemediation(env, investigationId, body.remediationDraft);
+  return json(env, request, { runtime: "cloudflare", investigation: updated });
 }
 
 async function approveInvestigation(
@@ -191,6 +240,29 @@ export default {
         gateway: env.AI_GATEWAY_ID ?? "default",
         workflow: "org-brain-investigation",
         durableState: "InvestigationStateObject",
+        persistence: env.DB ? "d1" : "durable-object-only",
+        memory: env.MEMORY ? "vectorize" : "not-bound",
+      });
+    }
+
+    if (request.method === "GET" && url.pathname === "/v1/history") {
+      const limit = Number(url.searchParams.get("limit") ?? 30);
+      const history = await listInvestigationHistory(env, limit);
+      return json(env, request, {
+        runtime: "cloudflare",
+        persistence: env.DB ? "d1" : "not-bound",
+        history,
+      });
+    }
+
+    if (request.method === "GET" && url.pathname === "/v1/memory/search") {
+      const query = url.searchParams.get("q")?.trim();
+      if (!query) return json(env, request, { error: "q is required" }, 400);
+      const matches = await searchInvestigationMemory(env, query);
+      return json(env, request, {
+        runtime: "cloudflare",
+        memory: env.MEMORY ? "vectorize" : "not-bound",
+        matches,
       });
     }
 
@@ -198,12 +270,17 @@ export default {
       return createInvestigation(request, env);
     }
 
-    const approvalId = approvalIdFromPath(url.pathname);
+    const remediationId = pathId(url.pathname, "/remediation");
+    if (request.method === "PATCH" && remediationId) {
+      return updateRemediation(request, env, remediationId);
+    }
+
+    const approvalId = pathId(url.pathname, "/approval");
     if (request.method === "POST" && approvalId) {
       return approveInvestigation(request, env, approvalId);
     }
 
-    const investigationId = investigationIdFromPath(url.pathname);
+    const investigationId = pathId(url.pathname);
     if (request.method === "GET" && investigationId) {
       return getInvestigation(request, env, investigationId);
     }
