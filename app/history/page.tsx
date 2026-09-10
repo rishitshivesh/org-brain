@@ -16,6 +16,12 @@ import {
 } from "@/lib/cloudflare-runtime";
 import { PageHeader } from "@/modules/common/page-header";
 
+const memoryLabel = {
+  "incident-rca": "Incident RCA",
+  "architecture-decision": "ADR",
+  "work-item": "Work item",
+} as const;
+
 export default function HistoryPage() {
   const configured = isCloudflareRuntimeConfigured();
   const [history, setHistory] = useState<RemoteHistoryItem[]>([]);
@@ -66,7 +72,7 @@ export default function HistoryPage() {
       <PageHeader
         eyebrow="Closed-loop engineering memory"
         title="Investigation History"
-        description="Completed investigations are persisted to D1 when bound and their RCA summaries can be retrieved semantically through Vectorize."
+        description="Cloudflare persists investigations in D1 and upgrades retrieval to semantic organization memory when Vectorize is bound. ADRs, work items and prior RCAs remain context, never fabricated current-incident evidence."
         actions={
           <Button
             variant="outline"
@@ -79,7 +85,7 @@ export default function HistoryPage() {
         }
       />
 
-      <div className="mx-auto grid w-full max-w-[1680px] gap-5 p-5 sm:p-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+      <div className="mx-auto grid w-full max-w-[1680px] gap-5 p-5 sm:p-6 xl:grid-cols-[minmax(0,1fr)_430px]">
         <Card className="border-foreground/10 bg-card/85 shadow-none">
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
@@ -158,7 +164,7 @@ export default function HistoryPage() {
         <Card className="border-foreground/10 bg-card/85 shadow-none">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Brain className="size-4" /> Semantic memory
+              <Brain className="size-4" /> Organization memory
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -167,14 +173,14 @@ export default function HistoryPage() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 className="min-h-24 w-full resize-none rounded-xl border bg-background/60 p-3 text-sm outline-none transition focus:border-foreground/30"
-                placeholder="Search prior RCAs…"
+                placeholder="Search prior RCAs, ADRs and work items…"
               />
               <Button
                 className="w-full"
                 onClick={() => void searchMemory()}
                 disabled={!configured || loading || !query.trim()}
               >
-                <Search className="size-4" /> Search Vectorize memory
+                <Search className="size-4" /> Search organization memory
               </Button>
             </div>
 
@@ -184,31 +190,49 @@ export default function HistoryPage() {
               </p>
             ) : null}
 
-            <div className="space-y-2">
+            <div className="portal-scroll max-h-[48svh] space-y-2 overflow-y-auto pr-1">
               {memory.map((match) => (
                 <div
                   key={match.id}
                   className="rounded-xl border bg-muted/20 p-3"
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-xs">
-                      {match.incidentId ?? match.id}
-                    </span>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Badge variant="secondary" className="font-normal">
+                          {match.kind ? memoryLabel[match.kind] : "Memory"}
+                        </Badge>
+                        <Badge variant="outline" className="font-normal">
+                          {match.source}
+                        </Badge>
+                      </div>
+                      <p className="mt-2 truncate text-xs font-medium">
+                        {match.title ?? match.incidentId ?? match.id}
+                      </p>
+                    </div>
                     <Badge variant="outline">
                       {Math.round(match.score * 100)}%
                     </Badge>
                   </div>
-                  {match.rootCause ? (
+                  {match.summary || match.rootCause ? (
                     <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                      {match.rootCause}
+                      {match.summary ?? match.rootCause}
+                    </p>
+                  ) : null}
+                  {match.mitigation ? (
+                    <p className="mt-2 border-t pt-2 text-xs leading-5 text-muted-foreground">
+                      <span className="font-medium text-foreground">
+                        Prior mitigation: 
+                      </span>
+                      {match.mitigation}
                     </p>
                   ) : null}
                 </div>
               ))}
               {configured && !memory.length ? (
                 <p className="text-xs leading-5 text-muted-foreground">
-                  Vector search results appear here once MEMORY is bound and
-                  investigations have been indexed.
+                  Search results use Vectorize when MEMORY is bound, with a D1
+                  investigation-history fallback when it is not.
                 </p>
               ) : null}
             </div>
