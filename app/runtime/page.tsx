@@ -27,6 +27,7 @@ interface RuntimeHealth {
   workflow: string;
   durableState: string;
   persistence: string;
+  organizationProviders: string;
   memory: string;
 }
 
@@ -82,7 +83,7 @@ export default function RuntimePage() {
       <PageHeader
         eyebrow="Cloudflare runtime"
         title="Execution health"
-        description="Verify the deployed investigation boundary from inside the portal. This page talks directly to the configured Worker health endpoint and exposes only safe runtime metadata."
+        description="Verify the deployed investigation boundary from inside the portal, including model routing, persistent providers, durable state and organizational memory."
         actions={
           <Button
             variant="outline"
@@ -126,14 +127,26 @@ export default function RuntimePage() {
             />
             <MetricCard
               icon={Database}
-              label="History"
-              value={connected ? (health?.persistence === "d1" ? "D1" : "DO") : "—"}
-              hint={health?.persistence ?? "Durable investigation history"}
+              label="Providers"
+              value={
+                connected
+                  ? health?.organizationProviders === "d1"
+                    ? "D1"
+                    : "Seed"
+                  : "—"
+              }
+              hint={health?.organizationProviders ?? "Organization context"}
             />
             <MetricCard
               icon={BrainCircuit}
               label="Memory"
-              value={connected ? (health?.memory === "vectorize" ? "Vectorize" : "D1 fallback") : "—"}
+              value={
+                connected
+                  ? health?.memory === "vectorize"
+                    ? "Vectorize"
+                    : "D1 fallback"
+                  : "—"
+              }
               hint={health?.memory ?? "Historical RCA retrieval"}
             />
           </div>
@@ -147,8 +160,9 @@ export default function RuntimePage() {
                 <p className="font-medium">Running in local orchestration mode</p>
                 <p className="text-muted-foreground">
                   Configure NEXT_PUBLIC_ORG_BRAIN_API_URL to point at the Worker.
-                  Ask continues to function locally, but durable Workflow and
-                  Workers AI execution are not active in this browser.
+                  Ask continues to function locally, but the D1-backed provider,
+                  Workflow, memory and Workers AI execution path are not active
+                  in this browser.
                 </p>
               </div>
             </CardContent>
@@ -193,8 +207,9 @@ export default function RuntimePage() {
                     ["AI Gateway", health.gateway],
                     ["Workflow", health.workflow],
                     ["Durable state", health.durableState],
+                    ["Organization provider", health.organizationProviders],
                     ["History persistence", health.persistence],
-                    ["Historical memory", health.memory],
+                    ["Organization memory", health.memory],
                   ].map(([label, value]) => (
                     <div
                       key={label}
@@ -223,6 +238,7 @@ export default function RuntimePage() {
                     "POST /v1/investigations/:id/approval",
                     "GET /v1/history",
                     "GET /v1/memory/search?q=...",
+                    "GET /v1/handoffs",
                   ].map((endpoint) => (
                     <div
                       key={endpoint}
@@ -232,9 +248,10 @@ export default function RuntimePage() {
                     </div>
                   ))}
                   <p className="pt-2 font-sans text-xs leading-5 text-muted-foreground">
-                    Investigations continue inside a durable Workflow, archive to
-                    D1, optionally index into Vectorize, and preserve a human
-                    approval boundary before provider handoff.
+                    Investigations continue inside a durable Workflow, run their
+                    specialists against D1-backed provider data, archive results,
+                    retrieve prior engineering memory and preserve human approval
+                    before provider handoff.
                   </p>
                 </CardContent>
               </Card>
