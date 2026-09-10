@@ -4,6 +4,7 @@ import {
   Activity,
   BadgeAlert,
   CheckCircle2,
+  Copy,
   DatabaseZap,
   Play,
   RotateCcw,
@@ -35,19 +36,24 @@ const scenarioIcons = {
 
 export default function ScenarioLabComponent() {
   const [active, setActive] = useState<string | null>(null);
-  const readyCount = publicScenarios.filter(
-    (scenario) => scenario.ready,
-  ).length;
+  const [copiedPrompt, setCopiedPrompt] = useState<string | null>(null);
+  const readyCount = publicScenarios.filter((scenario) => scenario.ready).length;
   const signalCount = new Set(
     publicScenarios.flatMap((scenario) => scenario.signals),
   ).size;
+
+  async function copyPrompt(id: string, prompt: string) {
+    await navigator.clipboard.writeText(prompt);
+    setCopiedPrompt(id);
+    window.setTimeout(() => setCopiedPrompt(null), 1600);
+  }
 
   return (
     <div className="min-h-full bg-background/40">
       <PageHeader
         eyebrow="Deterministic fixtures"
         title="Scenario Lab"
-        description="Inject consistent operational evidence for demos and development. Public scenario metadata is separated from the private evaluation answer key."
+        description="Inject complete evidence packs, inspect the incident, then hand the exact investigation prompt to Org Brain. Hidden evaluation truth never enters the client path."
         actions={
           active ? (
             <Button
@@ -72,13 +78,13 @@ export default function ScenarioLabComponent() {
               icon={Sparkles}
               label="Scenarios"
               value={publicScenarios.length}
-              hint="Defined fixtures"
+              hint="Complete failure modes"
             />
             <MetricCard
               icon={CheckCircle2}
               label="Ready to inject"
               value={readyCount}
-              hint="Complete deterministic evidence"
+              hint="Deterministic evidence packs"
             />
             <MetricCard
               icon={Activity}
@@ -96,7 +102,7 @@ export default function ScenarioLabComponent() {
         </div>
 
         <div className="space-y-3">
-          <SectionLabel aside="The root cause remains hidden from the client">
+          <SectionLabel aside="Each scenario has a different causal pattern">
             Scenario catalogue
           </SectionLabel>
           <div className="portal-grid grid gap-4 xl:grid-cols-3">
@@ -106,6 +112,7 @@ export default function ScenarioLabComponent() {
                 description,
                 id,
                 incidentId,
+                prompt,
                 ready,
                 signals,
                 title,
@@ -113,9 +120,7 @@ export default function ScenarioLabComponent() {
                 const Icon = scenarioIcons[category];
                 const injected = active === id;
                 const incident = incidentId
-                  ? orgBrainData.incidents.find(
-                      (item) => item.id === incidentId,
-                    )
+                  ? orgBrainData.incidents.find((item) => item.id === incidentId)
                   : undefined;
 
                 return (
@@ -142,11 +147,7 @@ export default function ScenarioLabComponent() {
                           variant={ready ? "secondary" : "outline"}
                           className="font-normal"
                         >
-                          {injected
-                            ? "Injected"
-                            : ready
-                              ? "Seeded"
-                              : "Fixture pending"}
+                          {injected ? "Injected" : ready ? "Seeded" : "Fixture pending"}
                         </Badge>
                       </div>
                       <CardTitle className="mt-2 text-lg tracking-tight">
@@ -176,30 +177,39 @@ export default function ScenarioLabComponent() {
                               <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500/40" />
                               <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
                             </span>
-                            <p className="font-medium">
-                              Injected {incident?.id}
-                            </p>
+                            <p className="font-medium">Injected {incident?.id}</p>
                           </div>
                           <p className="mt-1 text-xs text-muted-foreground">
                             {incident?.title}
                           </p>
-                          <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                            Observable evidence is now available to the
-                            investigation surface. The evaluation answer key
-                            remains isolated.
-                          </p>
-                          <Button
-                            render={
-                              <Link
-                                href={`/incidents/${incidentId}`}
-                                prefetch
-                              />
-                            }
-                            size="sm"
-                            className="mt-3 w-full transition-transform active:scale-[0.98]"
-                          >
-                            Open incident
-                          </Button>
+
+                          <div className="mt-3 rounded-lg border bg-background/55 p-2.5">
+                            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                              Suggested investigation
+                            </p>
+                            <p className="mt-1.5 line-clamp-3 text-xs leading-5 text-foreground/80">
+                              {prompt}
+                            </p>
+                          </div>
+
+                          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="transition-transform active:scale-[0.98]"
+                              onClick={() => void copyPrompt(id, prompt)}
+                            >
+                              <Copy /> {copiedPrompt === id ? "Copied" : "Copy Ask prompt"}
+                            </Button>
+                            <Button
+                              render={<Link href={`/incidents/${incidentId}`} prefetch />}
+                              size="sm"
+                              className="transition-transform active:scale-[0.98]"
+                            >
+                              Open incident
+                            </Button>
+                          </div>
                         </div>
                       ) : (
                         <Button
