@@ -26,6 +26,8 @@ interface RuntimeHealth {
   gateway: string;
   workflow: string;
   durableState: string;
+  persistence: string;
+  memory: string;
 }
 
 type RuntimeState =
@@ -123,16 +125,16 @@ export default function RuntimePage() {
               hint={health?.ai ?? "Available when Worker is connected"}
             />
             <MetricCard
-              icon={Workflow}
-              label="Workflow"
-              value={connected ? "Bound" : "—"}
-              hint={health?.workflow ?? "Durable orchestration"}
+              icon={Database}
+              label="History"
+              value={connected ? (health?.persistence === "d1" ? "D1" : "DO") : "—"}
+              hint={health?.persistence ?? "Durable investigation history"}
             />
             <MetricCard
-              icon={Database}
-              label="State"
-              value={connected ? "Durable" : "—"}
-              hint={health?.durableState ?? "Per-investigation state"}
+              icon={BrainCircuit}
+              label="Memory"
+              value={connected ? (health?.memory === "vectorize" ? "Vectorize" : "D1 fallback") : "—"}
+              hint={health?.memory ?? "Historical RCA retrieval"}
             />
           </div>
         </div>
@@ -191,6 +193,8 @@ export default function RuntimePage() {
                     ["AI Gateway", health.gateway],
                     ["Workflow", health.workflow],
                     ["Durable state", health.durableState],
+                    ["History persistence", health.persistence],
+                    ["Historical memory", health.memory],
                   ].map(([label, value]) => (
                     <div
                       key={label}
@@ -215,7 +219,10 @@ export default function RuntimePage() {
                   {[
                     "POST /v1/investigations",
                     "GET /v1/investigations/:id",
+                    "PATCH /v1/investigations/:id/remediation",
                     "POST /v1/investigations/:id/approval",
+                    "GET /v1/history",
+                    "GET /v1/memory/search?q=...",
                   ].map((endpoint) => (
                     <div
                       key={endpoint}
@@ -225,9 +232,9 @@ export default function RuntimePage() {
                     </div>
                   ))}
                   <p className="pt-2 font-sans text-xs leading-5 text-muted-foreground">
-                    Investigations return quickly with an ID, continue inside a
-                    durable Workflow, and expose state through the Durable Object
-                    until approval resumes the run.
+                    Investigations continue inside a durable Workflow, archive to
+                    D1, optionally index into Vectorize, and preserve a human
+                    approval boundary before provider handoff.
                   </p>
                 </CardContent>
               </Card>
