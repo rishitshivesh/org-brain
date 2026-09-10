@@ -1,6 +1,7 @@
 import type { OrchestrationResult } from "../agents";
 import type { InvestigationAiMetadata } from "../types/investigation";
 import type { Env } from "./env";
+import type { MemoryMatch } from "./memory";
 
 const DEFAULT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const DEFAULT_GATEWAY = "default";
@@ -14,7 +15,10 @@ export interface AiGroundingResult {
   metadata: InvestigationAiMetadata;
 }
 
-function compactEvidence(result: OrchestrationResult) {
+function compactEvidence(
+  result: OrchestrationResult,
+  historicalMemory: MemoryMatch[],
+) {
   return {
     plan: result.plan,
     specialists: result.runs.map((run) => ({
@@ -26,6 +30,13 @@ function compactEvidence(result: OrchestrationResult) {
     rca: result.rca,
     references: result.references,
     deterministicAnswer: result.answer,
+    historicalMemory: historicalMemory.map((match) => ({
+      incidentId: match.incidentId,
+      score: match.score,
+      rootCause: match.rootCause,
+      mitigation: match.mitigation,
+      source: match.source,
+    })),
   };
 }
 
@@ -33,6 +44,7 @@ export async function groundAnswerWithWorkersAi(
   env: Env,
   query: string,
   result: OrchestrationResult,
+  historicalMemory: MemoryMatch[] = [],
 ): Promise<AiGroundingResult> {
   const model = env.AI_MODEL ?? DEFAULT_MODEL;
   const gatewayId = env.AI_GATEWAY_ID ?? DEFAULT_GATEWAY;
@@ -45,17 +57,17 @@ export async function groundAnswerWithWorkersAi(
           {
             role: "system",
             content:
-              "You are the synthesis layer for Org Brain, an engineering intelligence system. Use only the supplied deterministic evidence. Never invent service names, IDs, metrics, commits, deployments, work items, architecture decisions, or causal claims. Distinguish observation from inference. Preserve the existing RCA confidence instead of manufacturing a new score. Be concise but technically useful. If the evidence is insufficient, say so.",
+              "You are the synthesis layer for Org Brain, an engineering intelligence system. Use only the supplied deterministic evidence. Never invent service names, IDs, metrics, commits, deployments, work items, architecture decisions, or causal claims. Distinguish observation from inference. Preserve the existing RCA confidence instead of manufacturing a new score. Historical memory is precedent only: it can support comparison and pattern recognition, but must never be presented as evidence that the current incident has the same root cause. If the evidence is insufficient, say so. Be concise but technically useful.",
           },
           {
             role: "user",
             content: JSON.stringify({
               query,
-              evidence: compactEvidence(result),
+              evidence: compactEvidence(result, historicalMemory),
             }),
           },
         ],
-        max_tokens: 900,
+        max_tokens: 1000,
         temperature: 0.15,
       },
       {
