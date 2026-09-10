@@ -9,6 +9,7 @@ import {
   Gauge,
   MessageSquare,
   OctagonAlertIcon,
+  Send,
   WorkflowIcon,
 } from "lucide-react";
 
@@ -21,6 +22,7 @@ export const APP_ROUTES = {
   knowledge: "/knowledge",
   scenarioLab: "/scenario-lab",
   history: "/history",
+  handoffs: "/handoffs",
   evaluations: "/evaluations",
   architecture: "/architecture",
   runtime: "/runtime",
@@ -66,6 +68,11 @@ export const SIDEBAR_ITEMS = [
     label: "History",
     href: APP_ROUTES.history,
     icon: Brain,
+  },
+  {
+    label: "Handoffs",
+    href: APP_ROUTES.handoffs,
+    icon: Send,
   },
   {
     label: "Evaluations",
