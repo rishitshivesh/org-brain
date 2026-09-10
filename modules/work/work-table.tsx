@@ -1,8 +1,9 @@
 "use client";
 
-import { Search, X } from "lucide-react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
@@ -31,53 +32,77 @@ export function WorkTable({ data }: { data: WorkItem[] }) {
     });
   }, [data, query, state]);
 
+  const filteredCount = filtered.length;
+  const hasFilters = Boolean(query || state !== "All");
+
   return (
-    <div className="space-y-3">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="relative w-full lg:max-w-sm">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search work items, tags or services"
-            className="pl-9"
-          />
+    <div className="overflow-hidden rounded-2xl border bg-card/72 shadow-sm backdrop-blur-sm">
+      <div className="sticky top-0 z-20 border-b bg-card/90 p-3 backdrop-blur-xl sm:p-4">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="relative w-full xl:max-w-md">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search work items, tags or services"
+              className="bg-background/80 pl-9 pr-9 shadow-none transition-shadow focus-visible:shadow-sm"
+            />
+            {query ? (
+              <button
+                type="button"
+                aria-label="Clear search"
+                onClick={() => setQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <X className="size-3.5" />
+              </button>
+            ) : null}
+          </div>
+
+          <div className="portal-scroll-x flex max-w-full items-center gap-1 overflow-x-auto pb-1 xl:pb-0">
+            <span className="mr-1 flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+              <SlidersHorizontal className="size-3.5" /> State
+            </span>
+            {states.map((itemState) => (
+              <Button
+                key={itemState}
+                type="button"
+                size="sm"
+                variant={state === itemState ? "secondary" : "ghost"}
+                className="shrink-0 transition-transform active:scale-95"
+                onClick={() => setState(itemState)}
+              >
+                {itemState}
+              </Button>
+            ))}
+            {hasFilters ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="shrink-0 text-muted-foreground"
+                onClick={() => {
+                  setQuery("");
+                  setState("All");
+                }}
+              >
+                Reset
+              </Button>
+            ) : null}
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-1">
-          {states.map((itemState) => (
-            <Button
-              key={itemState}
-              type="button"
-              size="sm"
-              variant={state === itemState ? "secondary" : "ghost"}
-              onClick={() => setState(itemState)}
-            >
-              {itemState}
-            </Button>
-          ))}
-          {(query || state !== "All") && (
-            <Button
-              type="button"
-              size="icon-sm"
-              variant="ghost"
-              aria-label="Clear filters"
-              onClick={() => {
-                setQuery("");
-                setState("All");
-              }}
-            >
-              <X />
-            </Button>
-          )}
+
+        <div className="mt-3 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+          <span>
+            <span className="font-medium text-foreground">{filteredCount}</span> of {data.length} work items
+          </span>
+          <Badge variant="outline" className="hidden font-normal sm:inline-flex">
+            Seeded Azure DevOps view
+          </Badge>
         </div>
       </div>
 
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>{filtered.length} of {data.length} work items</span>
-        <span>Seeded Azure DevOps view</span>
-      </div>
-
-      <div className="rounded-xl border bg-card p-1 shadow-sm">
+      <div className="p-1.5 sm:p-2">
         <DataTable data={filtered} columns={columns} />
       </div>
     </div>
