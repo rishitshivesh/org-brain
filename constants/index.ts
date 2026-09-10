@@ -1,6 +1,7 @@
 import {
   BookOpenCheck,
   Cable,
+  ChartNoAxesCombined,
   Computer,
   FlaskConical,
   MessageSquare,
@@ -16,6 +17,7 @@ export const APP_ROUTES = {
   graph: "/graph",
   knowledge: "/knowledge",
   scenarioLab: "/scenario-lab",
+  evaluations: "/evaluations",
 } as const;
 
 export const SIDEBAR_ITEMS = [
@@ -53,5 +55,10 @@ export const SIDEBAR_ITEMS = [
     label: "Scenario Lab",
     href: APP_ROUTES.scenarioLab,
     icon: FlaskConical,
+  },
+  {
+    label: "Evaluations",
+    href: APP_ROUTES.evaluations,
+    icon: ChartNoAxesCombined,
   },
 ];
