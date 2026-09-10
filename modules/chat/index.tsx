@@ -1,7 +1,7 @@
 "use client";
 
 import type { ChatStatus, UIMessage } from "ai";
-import { Boxes, GitBranch, Network, Sparkles } from "lucide-react";
+import { Boxes, Cloud, GitBranch, Network, Sparkles } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -14,10 +14,16 @@ import { AgentChat } from "@/components/agent-elements/agent-chat";
 import type { QuestionAnswer } from "@/components/agent-elements/question/question-prompt";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  approveRemoteInvestigation,
+  isCloudflareRuntimeConfigured,
+  runRemoteInvestigation,
+} from "@/lib/cloudflare-runtime";
 import { orgBrainData } from "@/lib/org-brain";
 import { PageHeader } from "@/modules/common/page-header";
 import { orgToolRenderers } from "@/modules/chat/org-tool-renderers";
 import { orgBrainProviders } from "@/providers";
+import type { InvestigationState } from "@/types/investigation";
 
 const initialMessages: UIMessage[] = [
   {
@@ -26,7 +32,7 @@ const initialMessages: UIMessage[] = [
     parts: [
       {
         type: "text",
-        text: "Org Brain can coordinate work, runtime, code-change, dependency and architecture specialists. RCA actions remain gated behind an explicit human approval step.",
+        text: "Org Brain coordinates work, runtime, code-change, dependency and architecture specialists. Structured context is resolved before model synthesis, and RCA actions remain gated behind explicit human approval.",
       },
     ],
   },
@@ -63,7 +69,7 @@ function textMessage(role: "user" | "assistant", text: string): UIMessage {
   };
 }
 
-function approvalQuestion(result: OrchestrationResult) {
+function approvalQuestion(result: OrchestrationResult, durable: boolean) {
   if (!result.rca) return null;
 
   return {
@@ -75,12 +81,14 @@ function approvalQuestion(result: OrchestrationResult) {
         {
           kind: "single",
           title: "What should be approved from this RCA?",
-          description: "Approval is recorded locally. No external rollback or work item creation is executed yet.",
+          description: durable
+            ? "The decision resumes the durable Cloudflare Workflow. No external rollback or work item mutation is executed yet."
+            : "Approval is recorded locally. No external rollback or work item mutation is executed yet.",
           options: [
             {
               id: "approve-both",
               label: "Mitigation + remediation",
-              description: "Approve the rollback handoff and remediation work draft.",
+              description: "Approve the mitigation handoff and remediation work draft.",
             },
             {
               id: "approve-mitigation",
@@ -95,7 +103,7 @@ function approvalQuestion(result: OrchestrationResult) {
             {
               id: "keep-drafts",
               label: "Keep both as drafts",
-              description: "Record no approval and leave both actions unchanged.",
+              description: "Resume without approval and leave both actions unchanged.",
             },
           ],
         },
@@ -106,8 +114,24 @@ function approvalQuestion(result: OrchestrationResult) {
   };
 }
 
-function assistantRunMessage(result: OrchestrationResult): UIMessage {
+function assistantRunMessage(
+  result: OrchestrationResult,
+  options: { durable: boolean; investigationId?: string },
+): UIMessage {
   const parts: unknown[] = [];
+
+  if (options.durable && options.investigationId) {
+    parts.push({
+      type: "tool-mcp__user-tools__start_investigation_workflow",
+      toolCallId: crypto.randomUUID(),
+      state: "output-available",
+      input: { investigationId: options.investigationId },
+      output: {
+        runtime: "cloudflare",
+        state: result.rca ? "waiting-approval" : "completed",
+      },
+    });
+  }
 
   if (result.plan.agents.length) {
     parts.push({
@@ -143,7 +167,7 @@ function assistantRunMessage(result: OrchestrationResult): UIMessage {
 
   parts.push({ type: "text", text: result.answer });
 
-  const question = approvalQuestion(result);
+  const question = approvalQuestion(result, options.durable);
   if (question) parts.push(question);
 
   return {
@@ -179,32 +203,54 @@ function resolveQuestion(
 }
 
 export function ChatExample() {
+  const cloudflareConfigured = isCloudflareRuntimeConfigured();
   const [messages, setMessages] = useState<UIMessage[]>(initialMessages);
   const [status, setStatus] = useState<ChatStatus>("ready");
   const [lastIntent, setLastIntent] = useState<string>("orchestrator-ready");
   const [activeAgents, setActiveAgents] = useState<string[]>([]);
   const [lastRun, setLastRun] = useState<OrchestrationResult | null>(null);
   const [lastApproval, setLastApproval] = useState<ApprovalRecord | null>(null);
+  const [investigation, setInvestigation] = useState<InvestigationState | null>(null);
 
   async function handleSend(input: { role: "user"; content: string }) {
     if (!input.content.trim()) return;
 
     setMessages((current) => [...current, textMessage("user", input.content)]);
     setStatus("submitted");
+    setInvestigation(null);
 
     try {
-      const result = await runOrchestrator(orgBrainProviders, input.content);
+      let result: OrchestrationResult;
+      let remoteInvestigation: InvestigationState | null = null;
+
+      if (cloudflareConfigured) {
+        const remote = await runRemoteInvestigation(input.content);
+        result = remote.result;
+        remoteInvestigation = remote.investigation;
+        setInvestigation(remote.investigation);
+      } else {
+        result = await runOrchestrator(orgBrainProviders, input.content);
+      }
+
       setLastIntent(result.plan.intent);
       setActiveAgents(result.plan.agents);
       setLastRun(result);
       setLastApproval(null);
-      setMessages((current) => [...current, assistantRunMessage(result)]);
-    } catch {
+      setMessages((current) => [
+        ...current,
+        assistantRunMessage(result, {
+          durable: Boolean(remoteInvestigation),
+          investigationId: remoteInvestigation?.id,
+        }),
+      ]);
+    } catch (error) {
       setMessages((current) => [
         ...current,
         textMessage(
           "assistant",
-          "The local orchestration run failed before any remote model call. The deterministic data remains unchanged.",
+          cloudflareConfigured
+            ? `The Cloudflare investigation failed before completion: ${error instanceof Error ? error.message : "unknown runtime error"}. No external system was changed.`
+            : "The local orchestration run failed. The deterministic organization data remains unchanged.",
         ),
       ]);
     } finally {
@@ -219,44 +265,64 @@ export function ChatExample() {
     if (!lastRun?.rca) return;
 
     const actions = approvedActions(payload.answer);
-    if (actions.includes("remediation")) {
-      await orgBrainProviders.workItems.createDraft(lastRun.rca.remediationDraft);
-    }
 
-    const record: ApprovalRecord = {
-      id: crypto.randomUUID(),
-      incidentId: lastRun.rca.incidentId,
-      actions,
-      status: actions.length ? "approved" : "kept-as-draft",
-      recordedAt: new Date().toISOString(),
-    };
-    setLastApproval(record);
+    try {
+      let durableInvestigation: InvestigationState | null = null;
 
-    const approvalText = actions.length
-      ? `Approval recorded for **${actions.join(" + ")}**. The remediation draft is ready for provider handoff when selected, and mitigation is eligible for a future execution provider. **No external system was changed.**`
-      : "Both actions remain drafts. No execution or work-item handoff was approved.";
+      if (cloudflareConfigured && investigation) {
+        durableInvestigation = await approveRemoteInvestigation(investigation.id, actions);
+        setInvestigation(durableInvestigation);
+      } else if (actions.includes("remediation")) {
+        await orgBrainProviders.workItems.createDraft(lastRun.rca.remediationDraft);
+      }
 
-    setMessages((current) => [
-      ...resolveQuestion(current, payload.toolCallId, payload.answer),
-      {
+      const record: ApprovalRecord = durableInvestigation?.approval ?? {
         id: crypto.randomUUID(),
-        role: "assistant",
-        parts: [
-          {
-            type: "tool-mcp__user-tools__record_approval",
-            toolCallId: `record-${record.id}`,
-            state: "output-available",
-            input: { incidentId: record.incidentId },
-            output: {
-              status: record.status,
-              actions: record.actions,
-              execution: "not-executed",
+        incidentId: lastRun.rca.incidentId,
+        actions,
+        status: actions.length ? "approved" : "kept-as-draft",
+        recordedAt: new Date().toISOString(),
+      };
+      setLastApproval(record);
+
+      const approvalText = actions.length
+        ? `Approval recorded for **${actions.join(" + ")}**${durableInvestigation ? " by the durable investigation workflow" : ""}. The selected handoffs are eligible for the next provider boundary. **No external system was changed.**`
+        : `Both actions remain drafts${durableInvestigation ? "; the durable workflow resumed without an approved handoff" : ""}. No execution or work-item mutation was approved.`;
+
+      setMessages((current) => [
+        ...resolveQuestion(current, payload.toolCallId, payload.answer),
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          parts: [
+            {
+              type: "tool-mcp__user-tools__record_approval",
+              toolCallId: `record-${record.id}`,
+              state: "output-available",
+              input: {
+                incidentId: record.incidentId,
+                investigationId: investigation?.id,
+              },
+              output: {
+                status: record.status,
+                actions: record.actions,
+                runtime: durableInvestigation ? "cloudflare-workflow" : "local",
+                execution: "not-executed",
+              },
             },
-          },
-          { type: "text", text: approvalText },
-        ],
-      } as UIMessage,
-    ]);
+            { type: "text", text: approvalText },
+          ],
+        } as UIMessage,
+      ]);
+    } catch (error) {
+      setMessages((current) => [
+        ...current,
+        textMessage(
+          "assistant",
+          `The approval was not durably completed: ${error instanceof Error ? error.message : "unknown runtime error"}. No external system was changed.`,
+        ),
+      ]);
+    }
   }
 
   return (
@@ -264,7 +330,7 @@ export function ChatExample() {
       <PageHeader
         eyebrow="Ask Org Brain"
         title="Engineering context, coordinated"
-        description="Bounded specialists resolve work, architecture, dependencies, runtime evidence and source changes. Any resulting action remains human-gated."
+        description="Bounded specialists resolve work, architecture, dependencies, runtime evidence and source changes. Cloudflare can durably coordinate the investigation while actions remain human-gated."
       />
 
       <div className="mx-auto grid w-full max-w-[1680px] gap-4 p-5 sm:p-6 xl:grid-cols-[minmax(0,1fr)_330px]">
@@ -281,7 +347,13 @@ export function ChatExample() {
                 Org Brain
               </CardTitle>
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="font-normal">{lastIntent}</Badge>
+                <Badge variant="outline" className="hidden font-normal sm:inline-flex">
+                  {cloudflareConfigured ? <Cloud className="size-3" /> : null}
+                  {cloudflareConfigured ? "Cloudflare" : "Local"}
+                </Badge>
+                <Badge variant="outline" className="font-normal">
+                  {lastIntent}
+                </Badge>
                 <span className="relative flex size-2">
                   <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500/40 motion-reduce:hidden" />
                   <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
@@ -310,6 +382,33 @@ export function ChatExample() {
         </Card>
 
         <div className="portal-scroll space-y-4 xl:max-h-[min(74svh,860px)] xl:overflow-y-auto xl:pr-1">
+          {investigation ? (
+            <Card className="portal-card-hover animate-in fade-in slide-in-from-top-1 border-foreground/10 bg-card/82 shadow-none backdrop-blur-sm duration-200">
+              <CardHeader>
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <Cloud className="size-4 text-muted-foreground" /> Investigation
+                  </CardTitle>
+                  <Badge variant="secondary" className="font-normal">
+                    {investigation.status.replaceAll("-", " ")}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2 text-xs text-muted-foreground">
+                <p className="truncate font-mono">{investigation.id}</p>
+                {investigation.ai ? (
+                  <div className="rounded-lg border bg-background/45 p-2.5">
+                    <p className="font-medium text-foreground">
+                      {investigation.ai.used ? "Workers AI synthesis" : "Deterministic fallback"}
+                    </p>
+                    <p className="mt-1 truncate">{investigation.ai.model}</p>
+                    <p className="mt-1">Gateway: {investigation.ai.gatewayId}</p>
+                  </div>
+                ) : null}
+              </CardContent>
+            </Card>
+          ) : null}
+
           <Card className="portal-card-hover border-foreground/10 bg-card/78 shadow-none backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-sm">Available context</CardTitle>
@@ -349,7 +448,9 @@ export function ChatExample() {
                       className="flex items-center justify-between rounded-lg border bg-background/50 px-3 py-2 text-sm"
                     >
                       <span className="capitalize">{agent} Agent</span>
-                      <Badge variant="secondary" className="font-normal">completed</Badge>
+                      <Badge variant="secondary" className="font-normal">
+                        completed
+                      </Badge>
                     </div>
                   ))}
                 </div>
@@ -372,11 +473,15 @@ export function ChatExample() {
               <CardContent className="space-y-3 text-sm">
                 <p className="leading-6">{lastRun.rca.rootCause}</p>
                 <div className="rounded-xl border bg-muted/20 p-3">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Mitigation draft</p>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                    Mitigation draft
+                  </p>
                   <p className="mt-1 leading-5">{lastRun.rca.mitigation}</p>
                 </div>
                 <div className="rounded-xl border bg-muted/20 p-3">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Remediation work</p>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                    Remediation work
+                  </p>
                   <p className="mt-1 font-medium">{lastRun.rca.remediationDraft.title}</p>
                   <p className="mt-1 text-xs text-muted-foreground">Draft only until approved</p>
                 </div>
@@ -392,7 +497,9 @@ export function ChatExample() {
 
           <Card className="border-dashed bg-card/45 shadow-none backdrop-blur-sm">
             <CardContent className="p-4 text-sm leading-6 text-muted-foreground">
-              Specialist execution is capped at three runs. Approvals are recorded separately from execution, ready to become durable Workflow state later.
+              {cloudflareConfigured
+                ? "Investigations execute through Cloudflare Workflows, keep durable state in a Durable Object, and use Workers AI only after deterministic context resolution. Approvals resume the workflow without executing external mutations."
+                : "Cloudflare runtime is not configured, so this browser is using the local deterministic orchestrator. Set NEXT_PUBLIC_ORG_BRAIN_API_URL to activate durable investigations."}
             </CardContent>
           </Card>
         </div>

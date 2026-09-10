@@ -6,6 +6,7 @@ import {
   Activity,
   BookOpenCheck,
   CheckCircle2,
+  Cloud,
   FileCode2,
   GitBranch,
   Network,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 
 const toolMeta = {
+  start_investigation_workflow: { label: "Started durable investigation", icon: Cloud },
   search_work_items: { label: "Searched work items", icon: Search },
   resolve_work_impact: { label: "Resolved work impact", icon: Network },
   check_work_conflicts: { label: "Checked conflicts", icon: ShieldAlert },
@@ -42,6 +44,7 @@ function outputSummary(name: string, output: unknown): string {
   if (!output || typeof output !== "object") return "Completed";
   const value = output as Record<string, unknown>;
 
+  if (name === "start_investigation_workflow" && typeof value.state === "string") return value.state.replaceAll("-", " ");
   if (name === "search_work_items" && typeof value.matched === "string") return value.matched;
   if (name === "resolve_work_impact" && Array.isArray(value.services)) return `${value.services.length} services`;
   if (name === "check_work_conflicts" && Array.isArray(value.conflicts)) return `${value.conflicts.length} conflicts`;
