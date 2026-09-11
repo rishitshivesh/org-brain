@@ -17,6 +17,20 @@ function scopedMetrics(
 ): MetricComparison[] {
   const operationText = operations.join(" ").toLowerCase();
 
+  if (/waf|managed-rule|inspection|multipart/.test(operationText)) {
+    return metrics.filter((metric) =>
+      /^(blocked_|multipart_|document_upload_|http_|error_)/.test(metric.metric),
+    );
+  }
+
+  if (/proxy_pass|nginx|upstream|edge/.test(operationText)) {
+    return metrics.filter((metric) =>
+      /^(http_504_|upstream_|request_completion_|document_validation_|cpu_|memory_)/.test(
+        metric.metric,
+      ),
+    );
+  }
+
   if (/db\.|database|checkout/.test(operationText)) {
     return metrics.filter((metric) =>
       /^(db_|checkout_|cpu_|memory_)/.test(metric.metric),
@@ -63,10 +77,16 @@ export async function runObservabilityAgent(
   const slowestSpans = [...candidateSpans]
     .sort((a, b) => b.durationMs - a.durationMs)
     .slice(0, 3);
-  const metrics = scopedMetrics(
-    context.metrics,
-    spans.map((span) => span.operation),
+
+  const incidentMetrics = context.metrics.filter(
+    (metric) => metric.metadata?.incidentId === incident.id,
   );
+  const metrics = incidentMetrics.length
+    ? incidentMetrics
+    : scopedMetrics(
+        context.metrics,
+        spans.map((span) => span.operation),
+      );
   const anomalousMetrics = metrics
     .map((metric) => ({
       ...metric,
@@ -103,7 +123,10 @@ export async function runObservabilityAgent(
   const evidenceAgainst = metrics
     .filter(
       (metric) =>
-        metric.metric.includes("cpu") || metric.metric.includes("memory"),
+        metric.metric.includes("cpu") ||
+        metric.metric.includes("memory") ||
+        metric.metric.includes("success_rate") ||
+        metric.metric.includes("error_rate"),
     )
     .filter((metric) => ratio(metric.before, metric.after) < 1.5)
     .map(
@@ -197,7 +220,7 @@ export async function runObservabilityAgent(
         ? `I also found **${warningLogs.length} warning/error logs** on the correlated trace.`
         : "No warning/error logs were correlated to the trace.",
       evidenceAgainst.length
-        ? `Resource evidence that stayed near baseline: ${evidenceAgainst.join(", ")}.`
+        ? `Evidence that stayed near baseline: ${evidenceAgainst.join(", ")}.`
         : "",
       "",
       "This localizes the runtime problem. Source attribution is handled separately by the Change Agent.",
