@@ -9,7 +9,8 @@ export interface ScenarioEvaluation {
 
 /**
  * Kept separate from public scenario metadata so the UI never needs to import
- * the answer key. Later this can be used by server-side evaluation tooling.
+ * the answer key. Server-only evaluation compares generated RCA output against
+ * these contracts without exposing the expected answer to runtime agents.
  */
 export const scenarioEvaluations: ScenarioEvaluation[] = [
   {
@@ -38,5 +39,23 @@ export const scenarioEvaluations: ScenarioEvaluation[] = [
     expectedServiceIds: ["SVC-CLAIMS-API", "SVC-DOCUMENT"],
     expectedDeploymentIds: ["DEP-2231"],
     expectedCommitShas: ["a90ed31"],
+  },
+  {
+    scenarioId: "waf-false-positive",
+    expectedRootCause:
+      "A WAF policy rollout enabled strict multipart body inspection at an anomaly threshold that blocks a legitimate claims upload pattern before traffic reaches NGINX or claims-api.",
+    supportingEvidenceIds: ["LOG-31", "LOG-32", "tr_waf_31fd2c"],
+    expectedServiceIds: ["SVC-WAF", "SVC-NGINX", "SVC-CLAIMS-API"],
+    expectedDeploymentIds: ["DEP-2244"],
+    expectedCommitShas: ["f3a21d9"],
+  },
+  {
+    scenarioId: "nginx-timeout",
+    expectedRootCause:
+      "A NGINX configuration rollout reduced proxy_read_timeout to five seconds, below the supported claims request latency budget, so the edge returns 504 while claims-api continues and completes successfully.",
+    supportingEvidenceIds: ["LOG-38", "LOG-39", "tr_nginx_81ce7a"],
+    expectedServiceIds: ["SVC-NGINX", "SVC-CLAIMS-API", "SVC-DOCUMENT"],
+    expectedDeploymentIds: ["DEP-2250"],
+    expectedCommitShas: ["b7d992a"],
   },
 ];
