@@ -4,22 +4,14 @@ import type {
   CreateInvestigationInput,
   InvestigationApprovalInput,
   InvestigationResponse,
-  InvestigationState,
+  InvestigationState
 } from "../types/investigation";
 import { listProviderHandoffs } from "./d1-providers";
 import type { Env } from "./env";
 import { InvestigationStateObject } from "./investigation-state";
 import { searchInvestigationMemory } from "./memory";
-import {
-  listInvestigationHistory,
-  persistInvestigation,
-  updatePersistedRemediation,
-} from "./persistence";
-import {
-  patchInvestigation,
-  readInvestigation,
-  writeInvestigation,
-} from "./state-client";
+import { listInvestigationHistory, persistInvestigation, updatePersistedRemediation } from "./persistence";
+import { patchInvestigation, readInvestigation, writeInvestigation } from "./state-client";
 import { InvestigationWorkflow } from "./workflow";
 
 export { InvestigationStateObject, InvestigationWorkflow };
@@ -27,17 +19,25 @@ export { InvestigationStateObject, InvestigationWorkflow };
 const jsonHeaders = { "content-type": "application/json; charset=utf-8" };
 
 function corsHeaders(env: Env, request: Request): HeadersInit {
-  const configured = env.ALLOWED_ORIGIN?.trim() || "*";
+  const allowedOrigins = (env.ALLOWED_ORIGIN ?? "*")
+    .split(",")
+    .map((value) => value.trim());
+
   const requestOrigin = request.headers.get("origin");
+
+  const allowAny = allowedOrigins.includes("*");
+
   const origin =
-    configured === "*" || requestOrigin === configured ? configured : "null";
+    allowAny || (requestOrigin && allowedOrigins.includes(requestOrigin))
+      ? (requestOrigin ?? "*")
+      : "null";
 
   return {
     "access-control-allow-origin": origin,
     "access-control-allow-methods": "GET,POST,PATCH,OPTIONS",
     "access-control-allow-headers": "content-type",
     "access-control-max-age": "86400",
-    vary: "Origin",
+    vary: "Origin"
   };
 }
 
@@ -45,11 +45,11 @@ function json(
   env: Env,
   request: Request,
   value: unknown,
-  status = 200,
+  status = 200
 ): Response {
   return new Response(JSON.stringify(value), {
     status,
-    headers: { ...jsonHeaders, ...corsHeaders(env, request) },
+    headers: { ...jsonHeaders, ...corsHeaders(env, request) }
   });
 }
 
@@ -64,10 +64,10 @@ function investigationIdFromPath(pathname: string): string | null {
 
 function investigationChildIdFromPath(
   pathname: string,
-  child: "approval" | "remediation",
+  child: "approval" | "remediation"
 ): string | null {
   const match = pathname.match(
-    new RegExp(`^/v1/investigations/([^/]+)/${child}$`),
+    new RegExp(`^/v1/investigations/([^/]+)/${child}$`)
   );
   return match?.[1] ? decodeURIComponent(match[1]) : null;
 }
@@ -88,14 +88,14 @@ function isWorkItemDraft(value: unknown): value is WorkItemDraft {
         draft.acceptanceCriteria.length <= 30 &&
         draft.acceptanceCriteria.every(
           (criterion) =>
-            typeof criterion === "string" && criterion.length <= 500,
+            typeof criterion === "string" && criterion.length <= 500
         )))
   );
 }
 
 async function createInvestigation(
   request: Request,
-  env: Env,
+  env: Env
 ): Promise<Response> {
   const body = (await request
     .json()
@@ -113,7 +113,7 @@ async function createInvestigation(
     query,
     status: "queued",
     createdAt: now,
-    updatedAt: now,
+    updatedAt: now
   };
 
   await writeInvestigation(env, state);
@@ -121,14 +121,14 @@ async function createInvestigation(
   try {
     const instance = await env.INVESTIGATION_WORKFLOW.create({
       id,
-      params: { investigationId: id, query },
+      params: { investigationId: id, query }
     });
     const investigation = await patchInvestigation(env, id, {
-      workflowInstanceId: instance.id,
+      workflowInstanceId: instance.id
     });
     const response: InvestigationResponse = {
       runtime: "cloudflare",
-      investigation,
+      investigation
     };
     return json(env, request, response, 202);
   } catch (error) {
@@ -136,7 +136,7 @@ async function createInvestigation(
       error instanceof Error ? error.message : "Failed to start workflow";
     const failed = await patchInvestigation(env, id, {
       status: "failed",
-      error: message,
+      error: message
     });
     await persistInvestigation(env, failed);
     return json(env, request, { error: message, investigationId: id }, 500);
@@ -146,14 +146,14 @@ async function createInvestigation(
 async function getInvestigation(
   request: Request,
   env: Env,
-  investigationId: string,
+  investigationId: string
 ): Promise<Response> {
   const investigation = await readInvestigation(env, investigationId);
   if (!investigation)
     return json(env, request, { error: "Investigation not found" }, 404);
   const response: InvestigationResponse = {
     runtime: "cloudflare",
-    investigation,
+    investigation
   };
   return json(env, request, response);
 }
@@ -161,7 +161,7 @@ async function getInvestigation(
 async function updateRemediation(
   request: Request,
   env: Env,
-  investigationId: string,
+  investigationId: string
 ): Promise<Response> {
   const investigation = await readInvestigation(env, investigationId);
   if (!investigation?.result?.rca)
@@ -178,14 +178,14 @@ async function updateRemediation(
   const remediationDraft = {
     ...body.remediationDraft,
     title: body.remediationDraft.title.trim(),
-    description: body.remediationDraft.description.trim(),
+    description: body.remediationDraft.description.trim()
   };
   const result = {
     ...investigation.result,
     rca: {
       ...investigation.result.rca,
-      remediationDraft,
-    },
+      remediationDraft
+    }
   };
   const updated = await patchInvestigation(env, investigationId, { result });
   await persistInvestigation(env, updated);
@@ -196,7 +196,7 @@ async function updateRemediation(
 async function approveInvestigation(
   request: Request,
   env: Env,
-  investigationId: string,
+  investigationId: string
 ): Promise<Response> {
   const investigation = await readInvestigation(env, investigationId);
   if (!investigation)
@@ -206,7 +206,7 @@ async function approveInvestigation(
       env,
       request,
       { error: "This investigation has no RCA approval step" },
-      409,
+      409
     );
   }
   if (investigation.status !== "waiting-approval") {
@@ -214,7 +214,7 @@ async function approveInvestigation(
       env,
       request,
       { error: `Investigation is ${investigation.status}` },
-      409,
+      409
     );
   }
 
@@ -228,7 +228,7 @@ async function approveInvestigation(
 
   await instance.sendEvent({
     type: "rca-approval",
-    payload: { actions: uniqueActions },
+    payload: { actions: uniqueActions }
   });
 
   return json(
@@ -239,9 +239,9 @@ async function approveInvestigation(
       investigationId,
       accepted: true,
       actions: uniqueActions,
-      execution: "not-executed",
+      execution: "not-executed"
     },
-    202,
+    202
   );
 }
 
@@ -250,7 +250,7 @@ export default {
     if (request.method === "OPTIONS") {
       return new Response(null, {
         status: 204,
-        headers: corsHeaders(env, request),
+        headers: corsHeaders(env, request)
       });
     }
 
@@ -266,11 +266,7 @@ export default {
         durableState: "InvestigationStateObject",
         persistence: env.DB ? "d1" : "durable-object-only",
         organizationProviders: env.DB ? "d1" : "seed-fallback",
-        memory: env.MEMORY
-          ? "vectorize"
-          : env.DB
-            ? "d1-fallback"
-            : "not-bound",
+        memory: env.MEMORY ? "vectorize" : env.DB ? "d1-fallback" : "not-bound"
       });
     }
 
@@ -280,7 +276,7 @@ export default {
       return json(env, request, {
         runtime: "cloudflare",
         persistence: env.DB ? "d1" : "not-bound",
-        history,
+        history
       });
     }
 
@@ -289,7 +285,7 @@ export default {
       return json(env, request, {
         runtime: "cloudflare",
         persistence: env.DB ? "d1" : "not-bound",
-        handoffs,
+        handoffs
       });
     }
 
@@ -299,12 +295,8 @@ export default {
       const matches = await searchInvestigationMemory(env, query);
       return json(env, request, {
         runtime: "cloudflare",
-        memory: env.MEMORY
-          ? "vectorize"
-          : env.DB
-            ? "d1-fallback"
-            : "not-bound",
-        matches,
+        memory: env.MEMORY ? "vectorize" : env.DB ? "d1-fallback" : "not-bound",
+        matches
       });
     }
 
@@ -314,7 +306,7 @@ export default {
 
     const remediationId = investigationChildIdFromPath(
       url.pathname,
-      "remediation",
+      "remediation"
     );
     if (request.method === "PATCH" && remediationId) {
       return updateRemediation(request, env, remediationId);
@@ -331,5 +323,5 @@ export default {
     }
 
     return json(env, request, { error: "Not found" }, 404);
-  },
+  }
 };

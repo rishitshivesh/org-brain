@@ -2,9 +2,9 @@ import type { OrchestrationResult } from "@/agents";
 import { evaluateSeededRca } from "@/lib/scenario-evaluator";
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => null)) as
-    | { result?: OrchestrationResult }
-    | null;
+  const body = (await request.json().catch(() => null)) as {
+    result?: OrchestrationResult;
+  } | null;
 
   if (!body?.result?.rca) {
     return Response.json({ error: "RCA result is required" }, { status: 400 });

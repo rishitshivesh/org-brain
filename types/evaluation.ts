@@ -1,10 +1,5 @@
 export interface RcaEvaluationDimension {
-  key:
-    | "evidence"
-    | "services"
-    | "deployment"
-    | "change"
-    | "causal-alignment";
+  key: "evidence" | "services" | "deployment" | "change" | "causal-alignment";
   label: string;
   score: number;
   maxScore: number;

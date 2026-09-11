@@ -89,7 +89,9 @@ export default function HistoryPage() {
         <Card className="border-foreground/10 bg-card/85 shadow-none">
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-base">Durable investigations</CardTitle>
+              <CardTitle className="text-base">
+                Durable investigations
+              </CardTitle>
               <Badge variant="outline">
                 {configured ? `${history.length} loaded` : "runtime offline"}
               </Badge>
@@ -222,7 +224,7 @@ export default function HistoryPage() {
                   {match.mitigation ? (
                     <p className="mt-2 border-t pt-2 text-xs leading-5 text-muted-foreground">
                       <span className="font-medium text-foreground">
-                        Prior mitigation: 
+                        Prior mitigation:
                       </span>
                       {match.mitigation}
                     </p>

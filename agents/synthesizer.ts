@@ -30,7 +30,8 @@ function detectPattern(changeEvidence: string[]): RcaPattern {
         "Roll back the correlated claims-worker release to the previous known-good version while the validation path is corrected and re-tested.",
       draft: {
         type: "Bug",
-        title: "Remove sequential document validation from claims consumer path",
+        title:
+          "Remove sequential document validation from claims consumer path",
         description:
           "Refactor claims-worker document validation so independent document checks do not execute serially inside the consumer processing path. Preserve bounded concurrency, error isolation and existing validation metrics.",
         tags: ["claims", "performance", "document-validation", "remediation"],

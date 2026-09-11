@@ -55,17 +55,26 @@ function entityCoverage(
   if (!expectedIds.length) return 1;
   const matches = expectedIds.filter((id) => {
     const name = names.get(id)?.toLowerCase();
-    return corpus.includes(id.toLowerCase()) || Boolean(name && corpus.includes(name));
+    return (
+      corpus.includes(id.toLowerCase()) ||
+      Boolean(name && corpus.includes(name))
+    );
   });
   return matches.length / expectedIds.length;
 }
 
-function evidenceCoverage(expectedIds: string[], result: OrchestrationResult): number {
+function evidenceCoverage(
+  expectedIds: string[],
+  result: OrchestrationResult,
+): number {
   if (!expectedIds.length) return 1;
-  const references = new Set(result.references.map((reference) => reference.toLowerCase()));
+  const references = new Set(
+    result.references.map((reference) => reference.toLowerCase()),
+  );
   const corpus = normalizedCorpus(result);
   const matches = expectedIds.filter(
-    (id) => references.has(id.toLowerCase()) || corpus.includes(id.toLowerCase()),
+    (id) =>
+      references.has(id.toLowerCase()) || corpus.includes(id.toLowerCase()),
   );
   return matches.length / expectedIds.length;
 }
@@ -83,7 +92,9 @@ function causalAlignment(expected: string, actual: string): number {
   const expectedTokens = tokenize(expected);
   const actualTokens = tokenize(actual);
   if (!expectedTokens.size) return 1;
-  const overlap = [...expectedTokens].filter((token) => actualTokens.has(token));
+  const overlap = [...expectedTokens].filter((token) =>
+    actualTokens.has(token),
+  );
   return overlap.length / expectedTokens.size;
 }
 
@@ -126,9 +137,12 @@ export function evaluateSeededRca(
   if (!expected) return null;
 
   const names = new Map<string, string>([
-    ...orgBrainData.services.map((service) => [service.id, service.name] as const),
+    ...orgBrainData.services.map(
+      (service) => [service.id, service.name] as const,
+    ),
     ...orgBrainData.deployments.map(
-      (deployment) => [deployment.id, `${deployment.id} ${deployment.version}`] as const,
+      (deployment) =>
+        [deployment.id, `${deployment.id} ${deployment.version}`] as const,
     ),
     ...orgBrainData.commits.map(
       (commit) => [commit.sha, `${commit.sha} ${commit.message}`] as const,

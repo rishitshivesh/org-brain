@@ -165,7 +165,9 @@ export async function updateRemoteRemediation(
   return response.investigation;
 }
 
-export async function getRemoteHistory(limit = 30): Promise<RemoteHistoryItem[]> {
+export async function getRemoteHistory(
+  limit = 30,
+): Promise<RemoteHistoryItem[]> {
   const response = await requestJson<{ history: RemoteHistoryItem[] }>(
     endpoint(`/v1/history?limit=${Math.max(1, Math.min(100, limit))}`),
   );

@@ -102,11 +102,7 @@ export default function RemediationPage({
         title="Remediation Draft"
         description="Edit the generated work item before approval. The durable Workflow reads the latest draft when remediation handoff is approved."
         actions={
-          <Button
-            render={<Link href="/history" />}
-            variant="outline"
-            size="sm"
-          >
+          <Button render={<Link href="/history" />} variant="outline" size="sm">
             <ArrowLeft className="size-4" /> History
           </Button>
         }

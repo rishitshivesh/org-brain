@@ -8,7 +8,6 @@ import {
   RefreshCw,
   Route,
   ShieldCheck,
-  Workflow,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
@@ -37,7 +36,10 @@ type RuntimeState =
   | { state: "local"; health: null; error: null }
   | { state: "error"; health: null; error: string };
 
-const runtimeUrl = process.env.NEXT_PUBLIC_ORG_BRAIN_API_URL?.replace(/\/$/, "");
+const runtimeUrl = process.env.NEXT_PUBLIC_ORG_BRAIN_API_URL?.replace(
+  /\/$/,
+  "",
+);
 
 export default function RuntimePage() {
   const [runtime, setRuntime] = useState<RuntimeState>({
@@ -157,12 +159,14 @@ export default function RuntimePage() {
             <CardContent className="flex gap-3 p-4 text-sm leading-6">
               <Activity className="mt-0.5 size-5 shrink-0 text-amber-600" />
               <div>
-                <p className="font-medium">Running in local orchestration mode</p>
+                <p className="font-medium">
+                  Running in local orchestration mode
+                </p>
                 <p className="text-muted-foreground">
-                  Configure NEXT_PUBLIC_ORG_BRAIN_API_URL to point at the Worker.
-                  Ask continues to function locally, but the D1-backed provider,
-                  Workflow, memory and Workers AI execution path are not active
-                  in this browser.
+                  Configure NEXT_PUBLIC_ORG_BRAIN_API_URL to point at the
+                  Worker. Ask continues to function locally, but the D1-backed
+                  provider, Workflow, memory and Workers AI execution path are
+                  not active in this browser.
                 </p>
               </div>
             </CardContent>
@@ -177,7 +181,8 @@ export default function RuntimePage() {
                 <p className="font-medium">Worker health check failed</p>
                 <p className="text-muted-foreground">{runtime.error}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Check deployment state, CORS and NEXT_PUBLIC_ORG_BRAIN_API_URL.
+                  Check deployment state, CORS and
+                  NEXT_PUBLIC_ORG_BRAIN_API_URL.
                 </p>
               </div>
             </CardContent>
@@ -202,14 +207,14 @@ export default function RuntimePage() {
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
                   {[
-                    ["Runtime", health.runtime],
-                    ["Workers AI", health.ai],
-                    ["AI Gateway", health.gateway],
-                    ["Workflow", health.workflow],
-                    ["Durable state", health.durableState],
-                    ["Organization provider", health.organizationProviders],
-                    ["History persistence", health.persistence],
-                    ["Organization memory", health.memory],
+                    ["Runtime", health?.runtime],
+                    ["Workers AI", health?.ai],
+                    ["AI Gateway", health?.gateway],
+                    ["Workflow", health?.workflow],
+                    ["Durable state", health?.durableState],
+                    ["Organization provider", health?.organizationProviders],
+                    ["History persistence", health?.persistence],
+                    ["Organization memory", health?.memory],
                   ].map(([label, value]) => (
                     <div
                       key={label}
@@ -249,9 +254,9 @@ export default function RuntimePage() {
                   ))}
                   <p className="pt-2 font-sans text-xs leading-5 text-muted-foreground">
                     Investigations continue inside a durable Workflow, run their
-                    specialists against D1-backed provider data, archive results,
-                    retrieve prior engineering memory and preserve human approval
-                    before provider handoff.
+                    specialists against D1-backed provider data, archive
+                    results, retrieve prior engineering memory and preserve
+                    human approval before provider handoff.
                   </p>
                 </CardContent>
               </Card>

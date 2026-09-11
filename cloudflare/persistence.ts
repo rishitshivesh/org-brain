@@ -44,7 +44,9 @@ async function ensureSchema(env: Env): Promise<void> {
   schemaReady = true;
 }
 
-function rowToHistory(row: Record<string, unknown>): InvestigationHistoryRecord {
+function rowToHistory(
+  row: Record<string, unknown>,
+): InvestigationHistoryRecord {
   return {
     id: String(row.id),
     query: String(row.query),
@@ -161,6 +163,11 @@ export async function updatePersistedRemediation(
      SET remediation_title = ?, remediation_json = ?, updated_at = ?
      WHERE id = ?`,
   )
-    .bind(title, JSON.stringify(draft), new Date().toISOString(), investigationId)
+    .bind(
+      title,
+      JSON.stringify(draft),
+      new Date().toISOString(),
+      investigationId,
+    )
     .run();
 }

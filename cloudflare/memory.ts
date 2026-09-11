@@ -3,10 +3,7 @@ import type { InvestigationState } from "../types/investigation";
 import type { Env } from "./env";
 import { searchPersistedHistory } from "./persistence";
 
-export type MemoryKind =
-  | "incident-rca"
-  | "architecture-decision"
-  | "work-item";
+export type MemoryKind = "incident-rca" | "architecture-decision" | "work-item";
 
 export interface MemoryMatch {
   id: string;

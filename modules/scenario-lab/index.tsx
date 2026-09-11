@@ -37,7 +37,9 @@ const scenarioIcons = {
 export default function ScenarioLabComponent() {
   const [active, setActive] = useState<string | null>(null);
   const [copiedPrompt, setCopiedPrompt] = useState<string | null>(null);
-  const readyCount = publicScenarios.filter((scenario) => scenario.ready).length;
+  const readyCount = publicScenarios.filter(
+    (scenario) => scenario.ready,
+  ).length;
   const signalCount = new Set(
     publicScenarios.flatMap((scenario) => scenario.signals),
   ).size;
@@ -120,7 +122,9 @@ export default function ScenarioLabComponent() {
                 const Icon = scenarioIcons[category];
                 const injected = active === id;
                 const incident = incidentId
-                  ? orgBrainData.incidents.find((item) => item.id === incidentId)
+                  ? orgBrainData.incidents.find(
+                      (item) => item.id === incidentId,
+                    )
                   : undefined;
 
                 return (
@@ -147,7 +151,11 @@ export default function ScenarioLabComponent() {
                           variant={ready ? "secondary" : "outline"}
                           className="font-normal"
                         >
-                          {injected ? "Injected" : ready ? "Seeded" : "Fixture pending"}
+                          {injected
+                            ? "Injected"
+                            : ready
+                              ? "Seeded"
+                              : "Fixture pending"}
                         </Badge>
                       </div>
                       <CardTitle className="mt-2 text-lg tracking-tight">
@@ -177,7 +185,9 @@ export default function ScenarioLabComponent() {
                               <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500/40" />
                               <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
                             </span>
-                            <p className="font-medium">Injected {incident?.id}</p>
+                            <p className="font-medium">
+                              Injected {incident?.id}
+                            </p>
                           </div>
                           <p className="mt-1 text-xs text-muted-foreground">
                             {incident?.title}
@@ -200,10 +210,18 @@ export default function ScenarioLabComponent() {
                               className="transition-transform active:scale-[0.98]"
                               onClick={() => void copyPrompt(id, prompt)}
                             >
-                              <Copy /> {copiedPrompt === id ? "Copied" : "Copy Ask prompt"}
+                              <Copy />{" "}
+                              {copiedPrompt === id
+                                ? "Copied"
+                                : "Copy Ask prompt"}
                             </Button>
                             <Button
-                              render={<Link href={`/incidents/${incidentId}`} prefetch />}
+                              render={
+                                <Link
+                                  href={`/incidents/${incidentId}`}
+                                  prefetch
+                                />
+                              }
                               size="sm"
                               className="transition-transform active:scale-[0.98]"
                             >

@@ -80,7 +80,11 @@ export async function runChangeAgent(
         `${item.commit.sha} · ${item.commit.message}`,
       ];
 
-      if (/document|validat|database|pool|retry|timeout/i.test(item.commit.message)) {
+      if (
+        /document|validat|database|pool|retry|timeout/i.test(
+          item.commit.message,
+        )
+      ) {
         score += 15;
       }
 
@@ -102,7 +106,8 @@ export async function runChangeAgent(
           signals,
         });
 
-        if (/document|validat|database|config|client|retry/i.test(path)) score += 10;
+        if (/document|validat|database|config|client|retry/i.test(path))
+          score += 10;
         for (const signal of signals) {
           score += scoreSignal(signal);
           evidence.push(`${path}: ${signal}`);

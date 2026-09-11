@@ -186,14 +186,25 @@ export default function ArchitecturePage() {
           <div className="grid gap-3 md:grid-cols-5">
             {[
               [GitBranch, "Investigate", "Bounded specialists build evidence"],
-              [BrainCircuit, "Synthesize", "Workers AI explains grounded context"],
+              [
+                BrainCircuit,
+                "Synthesize",
+                "Workers AI explains grounded context",
+              ],
               [ShieldCheck, "Approve", "Workflow pauses for a human decision"],
               [Send, "Handoff", "Latest remediation draft is recorded in D1"],
-              [History, "Remember", "RCA becomes searchable organizational memory"],
+              [
+                History,
+                "Remember",
+                "RCA becomes searchable organizational memory",
+              ],
             ].map(([Icon, title, description]) => {
               const StepIcon = Icon as typeof GitBranch;
               return (
-                <Card key={String(title)} className="portal-card-hover border-foreground/10 bg-card/82 shadow-none">
+                <Card
+                  key={String(title)}
+                  className="portal-card-hover border-foreground/10 bg-card/82 shadow-none"
+                >
                   <CardContent className="p-4">
                     <StepIcon className="size-4 text-muted-foreground" />
                     <p className="mt-3 text-sm font-medium">{String(title)}</p>
@@ -219,10 +230,14 @@ export default function ArchitecturePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm text-muted-foreground">
-                <p>Incident → trace → service → deployment → commit → work item.</p>
+                <p>
+                  Incident → trace → service → deployment → commit → work item.
+                </p>
                 <p>Dependencies come from explicit D1-backed service edges.</p>
                 <p>ADRs and source snapshots are resolved before inference.</p>
-                <p>Scenario hidden truth is never provided to runtime agents.</p>
+                <p>
+                  Scenario hidden truth is never provided to runtime agents.
+                </p>
               </CardContent>
             </Card>
 
@@ -233,17 +248,25 @@ export default function ArchitecturePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm text-muted-foreground">
-                <p>Rank and explain evidence already gathered by specialists.</p>
-                <p>Use retrieved prior RCAs, ADRs and work items as precedent.</p>
+                <p>
+                  Rank and explain evidence already gathered by specialists.
+                </p>
+                <p>
+                  Use retrieved prior RCAs, ADRs and work items as precedent.
+                </p>
                 <p>Synthesize mitigation and remediation recommendations.</p>
-                <p>Fall back to deterministic output when model inference fails.</p>
+                <p>
+                  Fall back to deterministic output when model inference fails.
+                </p>
               </CardContent>
             </Card>
           </div>
         </div>
 
         <div className="space-y-3">
-          <SectionLabel aside="Submission honesty">What is real today</SectionLabel>
+          <SectionLabel aside="Submission honesty">
+            What is real today
+          </SectionLabel>
           <div className="grid gap-4 lg:grid-cols-2">
             <Card className="border-emerald-500/20 bg-emerald-500/[0.035] shadow-none">
               <CardHeader>
@@ -252,11 +275,21 @@ export default function ArchitecturePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm text-muted-foreground">
-                <p>Workers, Workers AI, Workflows, Durable Objects and AI Gateway.</p>
-                <p>D1-backed organization providers, history and handoff ledger.</p>
-                <p>Vectorize organizational memory for ADRs, work items and RCAs.</p>
+                <p>
+                  Workers, Workers AI, Workflows, Durable Objects and AI
+                  Gateway.
+                </p>
+                <p>
+                  D1-backed organization providers, history and handoff ledger.
+                </p>
+                <p>
+                  Vectorize organizational memory for ADRs, work items and RCAs.
+                </p>
                 <p>Editable remediation before durable human approval.</p>
-                <p>Three coherent incident fixtures plus a hidden-truth evaluation harness.</p>
+                <p>
+                  Three coherent incident fixtures plus a hidden-truth
+                  evaluation harness.
+                </p>
               </CardContent>
             </Card>
 
@@ -267,10 +300,22 @@ export default function ArchitecturePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm text-muted-foreground">
-                <p>Live Azure DevOps, GitHub, Elastic/ClickHouse and deployment mutations.</p>
-                <p>The demo persists provider-shaped data in D1 behind the same interfaces.</p>
-                <p>No real rollback or third-party work-item creation occurs during review.</p>
-                <p>Approval permits a provider handoff record, never silent autonomous execution.</p>
+                <p>
+                  Live Azure DevOps, GitHub, Elastic/ClickHouse and deployment
+                  mutations.
+                </p>
+                <p>
+                  The demo persists provider-shaped data in D1 behind the same
+                  interfaces.
+                </p>
+                <p>
+                  No real rollback or third-party work-item creation occurs
+                  during review.
+                </p>
+                <p>
+                  Approval permits a provider handoff record, never silent
+                  autonomous execution.
+                </p>
               </CardContent>
             </Card>
           </div>

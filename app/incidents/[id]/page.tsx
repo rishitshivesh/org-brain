@@ -29,14 +29,18 @@ function metricsForIncident(
   metrics: MetricComparison[],
 ): MetricComparison[] {
   if (incidentId === "INC-2417") {
-    return metrics.filter((metric) => /^(db_|checkout_|cpu_|memory_)/.test(metric.metric));
+    return metrics.filter((metric) =>
+      /^(db_|checkout_|cpu_|memory_)/.test(metric.metric),
+    );
   }
   if (incidentId === "INC-2424") {
     return metrics.filter((metric) =>
       /^(document_|submit_|requests_|error_|cpu_|memory_)/.test(metric.metric),
     );
   }
-  return metrics.filter((metric) => /^(consumer_|cpu_|memory_)/.test(metric.metric));
+  return metrics.filter((metric) =>
+    /^(consumer_|cpu_|memory_)/.test(metric.metric),
+  );
 }
 
 export default async function IncidentPage({
@@ -175,10 +179,18 @@ export default async function IncidentPage({
               </CardHeader>
               <CardContent className="space-y-3">
                 {sourceSnapshots.map((snapshot) => (
-                  <div key={`${snapshot.commitSha}-${snapshot.path}`} className="overflow-hidden rounded-xl border">
+                  <div
+                    key={`${snapshot.commitSha}-${snapshot.path}`}
+                    className="overflow-hidden rounded-xl border"
+                  >
                     <div className="flex items-center justify-between gap-3 border-b bg-muted/35 px-3 py-2">
-                      <span className="truncate font-mono text-xs">{snapshot.path}</span>
-                      <Badge variant="outline" className="shrink-0 font-mono text-[10px]">
+                      <span className="truncate font-mono text-xs">
+                        {snapshot.path}
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className="shrink-0 font-mono text-[10px]"
+                      >
                         {snapshot.commitSha}
                       </Badge>
                     </div>
@@ -237,7 +249,8 @@ export default async function IncidentPage({
             </CardHeader>
             <CardContent className="space-y-3">
               {metrics.map((metric) => {
-                const change = metric.before === 0 ? null : metric.after / metric.before;
+                const change =
+                  metric.before === 0 ? null : metric.after / metric.before;
                 return (
                   <div
                     key={`${metric.serviceId}-${metric.metric}`}
@@ -260,7 +273,9 @@ export default async function IncidentPage({
                           {change.toFixed(1)}× regression
                         </p>
                       ) : (
-                        <p className="mt-0.5 text-[10px] text-muted-foreground">near baseline</p>
+                        <p className="mt-0.5 text-[10px] text-muted-foreground">
+                          near baseline
+                        </p>
                       )}
                     </div>
                   </div>

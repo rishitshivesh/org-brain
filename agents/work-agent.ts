@@ -49,7 +49,9 @@ function serviceStory(
     type: "Story",
     title: `Implement ${source.title.toLowerCase()} in ${serviceName}`,
     description: `Implement the ${serviceName} portion of ${source.title}. Preserve the existing service boundary and coordinate contract changes with the other affected services rather than duplicating lifecycle state.`,
-    tags: [...new Set([...(source.tags ?? []), serviceName, "org-brain-generated"])],
+    tags: [
+      ...new Set([...(source.tags ?? []), serviceName, "org-brain-generated"]),
+    ],
     relatedServiceIds: [serviceId],
     sourceReferences: [{ type: "work-item", id: source.id }],
     acceptanceCriteria: [

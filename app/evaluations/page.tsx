@@ -38,7 +38,10 @@ async function runEvaluationSuite(): Promise<EvaluationRun[]> {
     publicScenarios
       .filter((scenario) => scenario.ready && scenario.incidentId)
       .map(async (scenario) => {
-        const result = await runOrchestrator(orgBrainProviders, scenario.prompt);
+        const result = await runOrchestrator(
+          orgBrainProviders,
+          scenario.prompt,
+        );
         return {
           scenario,
           evaluation: evaluateSeededRca(result),
@@ -140,106 +143,121 @@ export default async function EvaluationsPage() {
             Scenario results
           </SectionLabel>
           <div className="portal-grid grid gap-4 xl:grid-cols-3">
-            {runs.map(({ scenario, evaluation, rootCause, confidence, agents }) => (
-              <Card
-                key={scenario.id}
-                className="portal-card-hover overflow-hidden border-foreground/10 bg-card/82 shadow-none backdrop-blur-sm"
-              >
-                <CardHeader className="border-b bg-muted/15">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
-                        {scenario.incidentId}
-                      </p>
-                      <CardTitle className="mt-1 text-base leading-6">
-                        {scenario.title}
-                      </CardTitle>
+            {runs.map(
+              ({ scenario, evaluation, rootCause, confidence, agents }) => (
+                <Card
+                  key={scenario.id}
+                  className="portal-card-hover overflow-hidden border-foreground/10 bg-card/82 shadow-none backdrop-blur-sm"
+                >
+                  <CardHeader className="border-b bg-muted/15">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                          {scenario.incidentId}
+                        </p>
+                        <CardTitle className="mt-1 text-base leading-6">
+                          {scenario.title}
+                        </CardTitle>
+                      </div>
+                      {evaluation ? (
+                        <div className="shrink-0 text-right">
+                          <p className="text-2xl font-semibold tracking-tight">
+                            {evaluation.score}
+                          </p>
+                          <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                            / 100
+                          </p>
+                        </div>
+                      ) : null}
                     </div>
                     {evaluation ? (
-                      <div className="shrink-0 text-right">
-                        <p className="text-2xl font-semibold tracking-tight">
-                          {evaluation.score}
+                      <Badge
+                        variant="secondary"
+                        className="mt-2 w-fit font-normal"
+                      >
+                        <CheckCircle2 className="size-3" />
+                        {scoreLabel(evaluation.score)}
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="mt-2 w-fit font-normal"
+                      >
+                        No score
+                      </Badge>
+                    )}
+                  </CardHeader>
+
+                  <CardContent className="space-y-5 p-4">
+                    <div>
+                      <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                        RCA produced
+                      </p>
+                      <p className="mt-2 text-sm leading-6">
+                        {rootCause ??
+                          "No RCA was synthesized for this scenario."}
+                      </p>
+                      {confidence !== null ? (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Agent confidence: {confidence}%
                         </p>
-                        <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                          / 100
+                      ) : null}
+                    </div>
+
+                    <div>
+                      <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                        Specialists
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {agents.map((agent) => (
+                          <Badge
+                            key={agent}
+                            variant="outline"
+                            className="font-normal capitalize"
+                          >
+                            {agent}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    {evaluation ? (
+                      <div className="space-y-3">
+                        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                          Rubric
                         </p>
+                        {evaluation.dimensions.map((dimension) => {
+                          const percent = Math.round(
+                            (dimension.score / dimension.maxScore) * 100,
+                          );
+                          return (
+                            <div key={dimension.key} className="space-y-1.5">
+                              <div className="flex items-center justify-between gap-3 text-xs">
+                                <span className="font-medium">
+                                  {dimension.label}
+                                </span>
+                                <span className="font-mono text-muted-foreground">
+                                  {dimension.score}/{dimension.maxScore}
+                                </span>
+                              </div>
+                              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                                <div
+                                  className="h-full rounded-full bg-foreground/70 transition-[width] duration-500"
+                                  style={{ width: `${percent}%` }}
+                                />
+                              </div>
+                              <p className="text-[11px] leading-4 text-muted-foreground">
+                                {dimension.detail}
+                              </p>
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : null}
-                  </div>
-                  {evaluation ? (
-                    <Badge variant="secondary" className="mt-2 w-fit font-normal">
-                      <CheckCircle2 className="size-3" />
-                      {scoreLabel(evaluation.score)}
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="mt-2 w-fit font-normal">
-                      No score
-                    </Badge>
-                  )}
-                </CardHeader>
-
-                <CardContent className="space-y-5 p-4">
-                  <div>
-                    <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                      RCA produced
-                    </p>
-                    <p className="mt-2 text-sm leading-6">
-                      {rootCause ?? "No RCA was synthesized for this scenario."}
-                    </p>
-                    {confidence !== null ? (
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Agent confidence: {confidence}%
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div>
-                    <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                      Specialists
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {agents.map((agent) => (
-                        <Badge key={agent} variant="outline" className="font-normal capitalize">
-                          {agent}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  {evaluation ? (
-                    <div className="space-y-3">
-                      <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                        Rubric
-                      </p>
-                      {evaluation.dimensions.map((dimension) => {
-                        const percent = Math.round(
-                          (dimension.score / dimension.maxScore) * 100,
-                        );
-                        return (
-                          <div key={dimension.key} className="space-y-1.5">
-                            <div className="flex items-center justify-between gap-3 text-xs">
-                              <span className="font-medium">{dimension.label}</span>
-                              <span className="font-mono text-muted-foreground">
-                                {dimension.score}/{dimension.maxScore}
-                              </span>
-                            </div>
-                            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                              <div
-                                className="h-full rounded-full bg-foreground/70 transition-[width] duration-500"
-                                style={{ width: `${percent}%` }}
-                              />
-                            </div>
-                            <p className="text-[11px] leading-4 text-muted-foreground">
-                              {dimension.detail}
-                            </p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : null}
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ),
+            )}
           </div>
         </div>
       </div>

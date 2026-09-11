@@ -187,8 +187,9 @@ export async function runOrchestrator(
         ...(synthesis?.rca.remediationDraft.sourceReferences?.map(
           (reference) => reference.id,
         ) ?? []),
-        ...(workPackage?.items.flatMap((item) =>
-          item.sourceReferences?.map((reference) => reference.id) ?? [],
+        ...(workPackage?.items.flatMap(
+          (item) =>
+            item.sourceReferences?.map((reference) => reference.id) ?? [],
         ) ?? []),
       ]),
     ],

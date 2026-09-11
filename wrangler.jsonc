@@ -21,7 +21,9 @@
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["InvestigationStateObject"]
+      "new_sqlite_classes": [
+        "InvestigationStateObject"
+      ]
     }
   ],
   "workflows": [
@@ -40,5 +42,11 @@
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1
-  }
+  },
+  "vectorize": [
+    {
+      "binding": "MEMORY",
+      "index_name": "org-brain-memory"
+    }
+  ]
 }

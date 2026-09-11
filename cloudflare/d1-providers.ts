@@ -76,12 +76,15 @@ function seedEntities() {
       (value) => ["service", value.id, value] as const,
     ),
     ...orgBrainData.serviceDependencies.map(
-      (value, index) => ["service-dependency", `DEPEDGE-${index}`, value] as const,
+      (value, index) =>
+        ["service-dependency", `DEPEDGE-${index}`, value] as const,
     ),
     ...orgBrainData.workItems.map(
       (value) => ["work-item", value.id, value] as const,
     ),
-    ...orgBrainData.commits.map((value) => ["commit", value.sha, value] as const),
+    ...orgBrainData.commits.map(
+      (value) => ["commit", value.sha, value] as const,
+    ),
     ...orgBrainData.sourceSnapshots.map(
       (value, index) => ["source-snapshot", `SOURCE-${index}`, value] as const,
     ),
@@ -112,11 +115,13 @@ export async function ensureD1OrganizationData(env: Env): Promise<boolean> {
 
   const now = new Date().toISOString();
   const statements = seedEntities().map(([type, id, value]) =>
-    env.DB!.prepare(
-      `INSERT OR IGNORE INTO ${ENTITY_TABLE}
+    env
+      .DB!.prepare(
+        `INSERT OR IGNORE INTO ${ENTITY_TABLE}
        (entity_type, entity_id, payload_json, updated_at)
        VALUES (?, ?, ?, ?)`,
-    ).bind(type, id, JSON.stringify(value), now),
+      )
+      .bind(type, id, JSON.stringify(value), now),
   );
   if (statements.length) await env.DB.batch(statements);
   return true;
@@ -202,8 +207,7 @@ export function createD1OrgProviders(env: Env): OrgBrainProviders {
     },
     repositories: {
       list: () => listType<Repository>(env, "repository"),
-      getById: (id: RepositoryId) =>
-        getType<Repository>(env, "repository", id),
+      getById: (id: RepositoryId) => getType<Repository>(env, "repository", id),
       async getCommit(repositoryId: RepositoryId, sha: CommitSha) {
         const commit = await getType<Commit>(env, "commit", sha);
         return commit?.repositoryId === repositoryId ? commit : null;
@@ -213,7 +217,10 @@ export function createD1OrgProviders(env: Env): OrgBrainProviders {
         sha: CommitSha,
         path: string,
       ) {
-        const snapshots = await listType<SourceSnapshot>(env, "source-snapshot");
+        const snapshots = await listType<SourceSnapshot>(
+          env,
+          "source-snapshot",
+        );
         return (
           snapshots.find(
             (snapshot) =>
@@ -238,8 +245,7 @@ export function createD1OrgProviders(env: Env): OrgBrainProviders {
       },
     },
     deployments: {
-      getById: (id: DeploymentId) =>
-        getType<Deployment>(env, "deployment", id),
+      getById: (id: DeploymentId) => getType<Deployment>(env, "deployment", id),
       async getForService(serviceId: ServiceId) {
         const deployments = await listType<Deployment>(env, "deployment");
         return deployments.filter(
@@ -289,8 +295,7 @@ export function createD1OrgProviders(env: Env): OrgBrainProviders {
       },
     },
     architecture: {
-      list: () =>
-        listType<ArchitectureDecision>(env, "architecture-decision"),
+      list: () => listType<ArchitectureDecision>(env, "architecture-decision"),
       getById: (id: ArchitectureDecisionId) =>
         getType<ArchitectureDecision>(env, "architecture-decision", id),
       async getForService(serviceId: ServiceId) {
