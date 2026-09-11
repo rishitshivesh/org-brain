@@ -3,7 +3,8 @@
   "main": "cloudflare/index.ts",
   "compatibility_date": "2026-09-10",
   "ai": {
-    "binding": "AI"
+    "binding": "AI",
+    "remote": true
   },
   "d1_databases": [
     {
@@ -46,7 +47,8 @@
   "vectorize": [
     {
       "binding": "MEMORY",
-      "index_name": "org-brain-memory"
+      "index_name": "org-brain-memory",
+      "remote": true
     }
   ]
 }
