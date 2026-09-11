@@ -20,6 +20,18 @@ function getWorkLookup(query: string): string {
   if (normalized.includes("document categorization")) {
     return "document categorization";
   }
+  if (normalized.includes("waf") || normalized.includes("multipart")) {
+    return "waf";
+  }
+  if (normalized.includes("nginx") || normalized.includes("edge timeout")) {
+    return "nginx";
+  }
+  if (normalized.includes("audit") || normalized.includes("telemetry")) {
+    return "audit";
+  }
+  if (normalized.includes("identity") || normalized.includes("token")) {
+    return "identity";
+  }
 
   return query;
 }
