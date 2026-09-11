@@ -46,6 +46,14 @@ export interface RemoteHandoff {
   createdAt: string;
 }
 
+export interface MemoryBootstrapResult {
+  runtime: "cloudflare";
+  memory: "vectorize" | "not-bound";
+  ok: boolean;
+  indexed: number;
+  error?: string;
+}
+
 function endpoint(path: string): string {
   if (!apiBaseUrl) throw new Error("Cloudflare runtime is not configured");
   return `${apiBaseUrl}${path}`;
@@ -83,6 +91,12 @@ function sleep(ms: number): Promise<void> {
 
 export function isCloudflareRuntimeConfigured(): boolean {
   return Boolean(apiBaseUrl);
+}
+
+export async function bootstrapRemoteMemory(): Promise<MemoryBootstrapResult> {
+  return requestJson<MemoryBootstrapResult>(endpoint("/v1/memory/bootstrap"), {
+    method: "POST",
+  });
 }
 
 export async function createRemoteInvestigation(
