@@ -17,6 +17,40 @@ export interface InvestigationHistoryRecord {
 
 let schemaReady = false;
 
+const SEARCH_STOP_WORDS = new Set([
+  "about",
+  "after",
+  "again",
+  "against",
+  "also",
+  "and",
+  "are",
+  "been",
+  "before",
+  "being",
+  "but",
+  "can",
+  "could",
+  "for",
+  "from",
+  "have",
+  "into",
+  "investigate",
+  "more",
+  "recent",
+  "show",
+  "that",
+  "the",
+  "their",
+  "this",
+  "what",
+  "when",
+  "where",
+  "which",
+  "with",
+  "would",
+]);
+
 async function ensureSchema(env: Env): Promise<void> {
   if (!env.DB || schemaReady) return;
   await env.DB.prepare(
@@ -62,6 +96,48 @@ function rowToHistory(
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
+}
+
+function tokenizeSearch(value: string): string[] {
+  return [
+    ...new Set(
+      value
+        .toLowerCase()
+        .replace(/[^a-z0-9-]+/g, " ")
+        .split(/\s+/)
+        .map((token) => token.trim())
+        .filter(
+          (token) =>
+            token.length >= 3 &&
+            token.length <= 48 &&
+            !SEARCH_STOP_WORDS.has(token),
+        )
+        .slice(0, 12),
+    ),
+  ];
+}
+
+function historySearchScore(
+  record: InvestigationHistoryRecord,
+  tokens: string[],
+): number {
+  if (!tokens.length) return 0;
+
+  const query = record.query.toLowerCase();
+  const rootCause = record.rootCause?.toLowerCase() ?? "";
+  const remediation = record.remediationTitle?.toLowerCase() ?? "";
+  const incident = record.incidentId?.toLowerCase() ?? "";
+
+  let score = 0;
+  for (const token of tokens) {
+    if (incident === token) score += 8;
+    if (incident.includes(token)) score += 4;
+    if (rootCause.includes(token)) score += 4;
+    if (query.includes(token)) score += 3;
+    if (remediation.includes(token)) score += 2;
+  }
+
+  return score;
 }
 
 export async function persistInvestigation(
@@ -132,19 +208,29 @@ export async function searchPersistedHistory(
 ): Promise<InvestigationHistoryRecord[]> {
   if (!env.DB) return [];
   await ensureSchema(env);
-  const clean = query.toLowerCase().replace(/[%_]/g, "").trim();
-  const like = `%${clean}%`;
+
+  const safeLimit = Math.max(1, Math.min(10, Math.floor(limit)));
+  const tokens = tokenizeSearch(query);
+  if (!tokens.length) return [];
+
+  // D1 is intentionally used as a lightweight local/fallback memory store.
+  // Pull a bounded recent window and rank in Worker code instead of constructing
+  // arbitrarily complex LIKE patterns from natural-language investigation prompts.
   const result = await env.DB.prepare(
     `SELECT id, query, incident_id, status, root_cause, confidence, mitigation,
       remediation_title, approval_status, created_at, updated_at
      FROM investigations
-     WHERE lower(query) LIKE ? OR lower(root_cause) LIKE ? OR lower(remediation_title) LIKE ?
      ORDER BY updated_at DESC
-     LIMIT ?`,
-  )
-    .bind(like, like, like, Math.max(1, Math.min(10, limit)))
-    .all<Record<string, unknown>>();
-  return result.results.map(rowToHistory);
+     LIMIT 100`,
+  ).all<Record<string, unknown>>();
+
+  return result.results
+    .map(rowToHistory)
+    .map((record) => ({ record, score: historySearchScore(record, tokens) }))
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, safeLimit)
+    .map(({ record }) => record);
 }
 
 export async function updatePersistedRemediation(
