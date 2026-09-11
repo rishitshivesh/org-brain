@@ -11,7 +11,8 @@ import type {
   InvestigationState,
 } from "../types/investigation";
 import { groundAnswerWithWorkersAi } from "./ai";
-import { createD1OrgProviders, ensureD1OrganizationData } from "./d1-providers";
+import { createD1OrgProviders } from "./d1-providers";
+import { syncD1OrganizationSeed } from "./d1-seed-sync";
 import type { Env } from "./env";
 import { indexInvestigationMemory, searchInvestigationMemory } from "./memory";
 import { persistInvestigation } from "./persistence";
@@ -43,8 +44,8 @@ export class InvestigationWorkflow extends WorkflowEntrypoint<
     );
 
     try {
-      const d1Ready = await step.do("prepare organization data", () =>
-        ensureD1OrganizationData(this.env),
+      const d1Ready = await step.do("sync organization data", () =>
+        syncD1OrganizationSeed(this.env),
       );
       const providers = d1Ready
         ? createD1OrgProviders(this.env)
@@ -79,6 +80,8 @@ export class InvestigationWorkflow extends WorkflowEntrypoint<
             input: { query },
             output: {
               matches: historicalMemory.map((match) => ({
+                kind: match.kind,
+                title: match.title,
                 incidentId: match.incidentId,
                 score: match.score,
                 source: match.source,
