@@ -30,8 +30,7 @@ function detectPattern(changeEvidence: string[]): RcaPattern {
         "Roll back the correlated claims-worker release to the previous known-good version while the validation path is corrected and re-tested.",
       draft: {
         type: "Bug",
-        title:
-          "Remove sequential document validation from claims consumer path",
+        title: "Remove sequential document validation from claims consumer path",
         description:
           "Refactor claims-worker document validation so independent document checks do not execute serially inside the consumer processing path. Preserve bounded concurrency, error isolation and existing validation metrics.",
         tags: ["claims", "performance", "document-validation", "remediation"],
@@ -87,6 +86,52 @@ function detectPattern(changeEvidence: string[]): RcaPattern {
           "Retries use exponential backoff with jitter rather than near-immediate repeated attempts.",
           "The total retry budget cannot exceed the claims submission latency budget.",
           "Dependency degradation does not amplify document-service request volume beyond the configured retry ceiling.",
+        ],
+      },
+    };
+  }
+
+  if (evidence.includes("strict waf multipart body inspection")) {
+    return {
+      rootCause: (commit) =>
+        `Commit ${commit} tightened managed WAF request-body inspection for multipart claim uploads without a scoped exception for the known false-positive rule. Legitimate document uploads are rejected at the edge before NGINX or claims-api receives the request.`,
+      mitigation:
+        "Roll back the WAF policy revision or apply a narrowly scoped route/content-type/rule exception for the verified false positive while retaining managed rules and block telemetry for all other traffic.",
+      draft: {
+        type: "Bug",
+        title: "Scope WAF multipart exception for legitimate claim uploads",
+        description:
+          "Add the smallest possible WAF exception for the verified multipart false positive on the claim-document upload route. Preserve managed-rule inspection elsewhere and retain rule/action observability.",
+        tags: ["waf", "security", "multipart", "false-positive", "remediation"],
+        relatedServiceIds: ["SVC-WAF", "SVC-NGINX", "SVC-CLAIMS-API"] as ServiceId[],
+        acceptanceCriteria: [
+          "Known-good multipart claim-document fixtures pass through WAF and reach claims-api.",
+          "The exception is scoped to the affected route, content type and verified rule ID rather than disabling managed rules globally.",
+          "Malicious regression fixtures for the same managed-rule family remain blocked.",
+          "WAF logs continue to record rule ID, action and route for both blocked and excepted requests.",
+        ],
+      },
+    };
+  }
+
+  if (evidence.includes("nginx proxy read timeout configured")) {
+    return {
+      rootCause: (commit) =>
+        `Commit ${commit} reduced the NGINX proxy read timeout below the supported synchronous claims request budget. NGINX returns 504 after the edge deadline even though claims-api and document validation continue and complete successfully downstream.`,
+      mitigation:
+        "Restore the previous route-specific upstream timeout immediately, then align NGINX timeout policy with the bounded application latency budget instead of using a global low timeout.",
+      draft: {
+        type: "Bug",
+        title: "Align NGINX claims upstream timeout with application latency budget",
+        description:
+          "Set a capacity-tested route-specific proxy timeout for claims submission, add edge timeout telemetry, and protect configuration changes with a regression test covering the longest supported synchronous document-validation path.",
+        tags: ["nginx", "edge", "timeout", "504", "remediation"],
+        relatedServiceIds: ["SVC-NGINX", "SVC-CLAIMS-API", "SVC-DOCUMENT"] as ServiceId[],
+        acceptanceCriteria: [
+          "Supported claims submissions are not terminated by NGINX before the application latency budget expires.",
+          "NGINX 504 rate returns to the established baseline for the seeded workload.",
+          "Longer-running operations beyond the supported synchronous budget are routed to asynchronous processing rather than solved by unbounded timeout growth.",
+          "Timeout-policy changes include route-specific regression coverage and an alert for requests approaching the edge budget.",
         ],
       },
     };
