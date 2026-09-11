@@ -8,12 +8,17 @@ import {
   RefreshCw,
   Route,
   ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  bootstrapRemoteMemory,
+  type MemoryBootstrapResult,
+} from "@/lib/cloudflare-runtime";
 import { MetricCard } from "@/modules/common/metric-card";
 import { PageHeader } from "@/modules/common/page-header";
 import { SectionLabel } from "@/modules/common/section-label";
@@ -47,6 +52,9 @@ export default function RuntimePage() {
     health: null,
     error: null,
   });
+  const [memoryBootstrap, setMemoryBootstrap] =
+    useState<MemoryBootstrapResult | null>(null);
+  const [bootstrapping, setBootstrapping] = useState(false);
 
   const checkHealth = useCallback(async () => {
     if (!runtimeUrl) {
@@ -72,6 +80,25 @@ export default function RuntimePage() {
       });
     }
   }, []);
+
+  async function bootstrapMemory() {
+    setBootstrapping(true);
+    setMemoryBootstrap(null);
+    try {
+      setMemoryBootstrap(await bootstrapRemoteMemory());
+    } catch (error) {
+      setMemoryBootstrap({
+        runtime: "cloudflare",
+        memory: "not-bound",
+        ok: false,
+        indexed: 0,
+        error:
+          error instanceof Error ? error.message : "Unable to bootstrap memory",
+      });
+    } finally {
+      setBootstrapping(false);
+    }
+  }
 
   useEffect(() => {
     void checkHealth();
@@ -190,78 +217,122 @@ export default function RuntimePage() {
         ) : null}
 
         {connected ? (
-          <div className="space-y-3">
-            <SectionLabel aside="Safe metadata returned by GET /health">
-              Connected services
-            </SectionLabel>
-            <div className="grid gap-4 lg:grid-cols-2">
-              <Card className="portal-card-hover border-emerald-500/20 bg-card/82 shadow-none backdrop-blur-sm">
-                <CardHeader>
-                  <div className="flex items-center justify-between gap-3">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <ShieldCheck className="size-4 text-emerald-600" />
-                      Cloudflare investigation runtime
-                    </CardTitle>
-                    <Badge variant="secondary">healthy</Badge>
+          <>
+            <div className="space-y-3">
+              <SectionLabel aside="One-time explicit operation">
+                Organization memory
+              </SectionLabel>
+              <Card className="border-foreground/10 bg-card/82 shadow-none backdrop-blur-sm">
+                <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-medium">
+                      Bootstrap ADR and work-item vectors
+                    </p>
+                    <p className="mt-1 max-w-3xl text-xs leading-5 text-muted-foreground">
+                      Run this once after creating or replacing the Vectorize
+                      index. Normal investigations do not re-embed the entire
+                      organization; they only index their completed RCA.
+                    </p>
+                    {memoryBootstrap ? (
+                      <p
+                        className={`mt-2 text-xs ${memoryBootstrap.ok ? "text-emerald-600" : "text-destructive"}`}
+                      >
+                        {memoryBootstrap.ok
+                          ? `Indexed ${memoryBootstrap.indexed} organization records.`
+                          : memoryBootstrap.error ?? "Memory bootstrap failed."}
+                      </p>
+                    ) : null}
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-3 text-sm">
-                  {[
-                    ["Runtime", health?.runtime],
-                    ["Workers AI", health?.ai],
-                    ["AI Gateway", health?.gateway],
-                    ["Workflow", health?.workflow],
-                    ["Durable state", health?.durableState],
-                    ["Organization provider", health?.organizationProviders],
-                    ["History persistence", health?.persistence],
-                    ["Organization memory", health?.memory],
-                  ].map(([label, value]) => (
-                    <div
-                      key={label}
-                      className="flex items-center justify-between gap-4 border-b pb-2 last:border-0 last:pb-0"
-                    >
-                      <span className="text-muted-foreground">{label}</span>
-                      <span className="max-w-[65%] truncate text-right font-mono text-xs">
-                        {value}
-                      </span>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              <Card className="portal-card-hover border-foreground/10 bg-card/82 shadow-none backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Route className="size-4" /> Investigation API
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 font-mono text-xs">
-                  {[
-                    "POST /v1/investigations",
-                    "GET /v1/investigations/:id",
-                    "PATCH /v1/investigations/:id/remediation",
-                    "POST /v1/investigations/:id/approval",
-                    "GET /v1/history",
-                    "GET /v1/memory/search?q=...",
-                    "GET /v1/handoffs",
-                  ].map((endpoint) => (
-                    <div
-                      key={endpoint}
-                      className="rounded-lg border bg-background/45 px-3 py-2.5"
-                    >
-                      {endpoint}
-                    </div>
-                  ))}
-                  <p className="pt-2 font-sans text-xs leading-5 text-muted-foreground">
-                    Investigations continue inside a durable Workflow, run their
-                    specialists against D1-backed provider data, archive
-                    results, retrieve prior engineering memory and preserve
-                    human approval before provider handoff.
-                  </p>
+                  <Button
+                    variant="outline"
+                    onClick={() => void bootstrapMemory()}
+                    disabled={
+                      bootstrapping || health?.memory !== "vectorize"
+                    }
+                  >
+                    <Sparkles
+                      className={bootstrapping ? "animate-pulse" : ""}
+                    />
+                    {bootstrapping ? "Indexing…" : "Bootstrap memory"}
+                  </Button>
                 </CardContent>
               </Card>
             </div>
-          </div>
+
+            <div className="space-y-3">
+              <SectionLabel aside="Safe metadata returned by GET /health">
+                Connected services
+              </SectionLabel>
+              <div className="grid gap-4 lg:grid-cols-2">
+                <Card className="portal-card-hover border-emerald-500/20 bg-card/82 shadow-none backdrop-blur-sm">
+                  <CardHeader>
+                    <div className="flex items-center justify-between gap-3">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <ShieldCheck className="size-4 text-emerald-600" />
+                        Cloudflare investigation runtime
+                      </CardTitle>
+                      <Badge variant="secondary">healthy</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm">
+                    {[
+                      ["Runtime", health?.runtime],
+                      ["Workers AI", health?.ai],
+                      ["AI Gateway", health?.gateway],
+                      ["Workflow", health?.workflow],
+                      ["Durable state", health?.durableState],
+                      ["Organization provider", health?.organizationProviders],
+                      ["History persistence", health?.persistence],
+                      ["Organization memory", health?.memory],
+                    ].map(([label, value]) => (
+                      <div
+                        key={label}
+                        className="flex items-center justify-between gap-4 border-b pb-2 last:border-0 last:pb-0"
+                      >
+                        <span className="text-muted-foreground">{label}</span>
+                        <span className="max-w-[65%] truncate text-right font-mono text-xs">
+                          {value}
+                        </span>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                <Card className="portal-card-hover border-foreground/10 bg-card/82 shadow-none backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Route className="size-4" /> Investigation API
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 font-mono text-xs">
+                    {[
+                      "POST /v1/investigations",
+                      "GET /v1/investigations/:id",
+                      "PATCH /v1/investigations/:id/remediation",
+                      "POST /v1/investigations/:id/approval",
+                      "POST /v1/memory/bootstrap",
+                      "GET /v1/history",
+                      "GET /v1/memory/search?q=...",
+                      "GET /v1/handoffs",
+                    ].map((endpoint) => (
+                      <div
+                        key={endpoint}
+                        className="rounded-lg border bg-background/45 px-3 py-2.5"
+                      >
+                        {endpoint}
+                      </div>
+                    ))}
+                    <p className="pt-2 font-sans text-xs leading-5 text-muted-foreground">
+                      Investigations continue inside a durable Workflow, run
+                      specialists against D1-backed provider data, archive
+                      results, retrieve prior engineering memory and preserve
+                      human approval before provider handoff.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </>
         ) : null}
       </div>
     </div>
