@@ -239,16 +239,15 @@ export default function RuntimePage() {
                       >
                         {memoryBootstrap.ok
                           ? `Indexed ${memoryBootstrap.indexed} organization records.`
-                          : memoryBootstrap.error ?? "Memory bootstrap failed."}
+                          : (memoryBootstrap.error ??
+                            "Memory bootstrap failed.")}
                       </p>
                     ) : null}
                   </div>
                   <Button
                     variant="outline"
                     onClick={() => void bootstrapMemory()}
-                    disabled={
-                      bootstrapping || health?.memory !== "vectorize"
-                    }
+                    disabled={bootstrapping || health?.memory !== "vectorize"}
                   >
                     <Sparkles
                       className={bootstrapping ? "animate-pulse" : ""}

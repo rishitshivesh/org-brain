@@ -138,7 +138,10 @@ export default function FlowsPage() {
                         : undefined;
 
                       return (
-                        <div key={`${flow.title}-${serviceId}`} className="flex items-center gap-2">
+                        <div
+                          key={`${flow.title}-${serviceId}`}
+                          className="flex items-center gap-2"
+                        >
                           <div className="min-w-[190px] rounded-xl border bg-background/55 p-3">
                             <div className="flex items-start justify-between gap-2">
                               <div>
@@ -150,7 +153,10 @@ export default function FlowsPage() {
                                 </p>
                               </div>
                               {service?.runtime ? (
-                                <Badge variant="outline" className="font-normal">
+                                <Badge
+                                  variant="outline"
+                                  className="font-normal"
+                                >
                                   {service.runtime}
                                 </Badge>
                               ) : null}

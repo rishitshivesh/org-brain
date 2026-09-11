@@ -19,7 +19,9 @@ function scopedMetrics(
 
   if (/waf|managed-rule|inspection|multipart/.test(operationText)) {
     return metrics.filter((metric) =>
-      /^(blocked_|multipart_|document_upload_|http_|error_)/.test(metric.metric),
+      /^(blocked_|multipart_|document_upload_|http_|error_)/.test(
+        metric.metric,
+      ),
     );
   }
 

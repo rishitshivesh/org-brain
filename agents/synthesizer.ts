@@ -30,7 +30,8 @@ function detectPattern(changeEvidence: string[]): RcaPattern {
         "Roll back the correlated claims-worker release to the previous known-good version while the validation path is corrected and re-tested.",
       draft: {
         type: "Bug",
-        title: "Remove sequential document validation from claims consumer path",
+        title:
+          "Remove sequential document validation from claims consumer path",
         description:
           "Refactor claims-worker document validation so independent document checks do not execute serially inside the consumer processing path. Preserve bounded concurrency, error isolation and existing validation metrics.",
         tags: ["claims", "performance", "document-validation", "remediation"],
@@ -103,7 +104,11 @@ function detectPattern(changeEvidence: string[]): RcaPattern {
         description:
           "Add the smallest possible WAF exception for the verified multipart false positive on the claim-document upload route. Preserve managed-rule inspection elsewhere and retain rule/action observability.",
         tags: ["waf", "security", "multipart", "false-positive", "remediation"],
-        relatedServiceIds: ["SVC-WAF", "SVC-NGINX", "SVC-CLAIMS-API"] as ServiceId[],
+        relatedServiceIds: [
+          "SVC-WAF",
+          "SVC-NGINX",
+          "SVC-CLAIMS-API",
+        ] as ServiceId[],
         acceptanceCriteria: [
           "Known-good multipart claim-document fixtures pass through WAF and reach claims-api.",
           "The exception is scoped to the affected route, content type and verified rule ID rather than disabling managed rules globally.",
@@ -122,11 +127,16 @@ function detectPattern(changeEvidence: string[]): RcaPattern {
         "Restore the previous route-specific upstream timeout immediately, then align NGINX timeout policy with the bounded application latency budget instead of using a global low timeout.",
       draft: {
         type: "Bug",
-        title: "Align NGINX claims upstream timeout with application latency budget",
+        title:
+          "Align NGINX claims upstream timeout with application latency budget",
         description:
           "Set a capacity-tested route-specific proxy timeout for claims submission, add edge timeout telemetry, and protect configuration changes with a regression test covering the longest supported synchronous document-validation path.",
         tags: ["nginx", "edge", "timeout", "504", "remediation"],
-        relatedServiceIds: ["SVC-NGINX", "SVC-CLAIMS-API", "SVC-DOCUMENT"] as ServiceId[],
+        relatedServiceIds: [
+          "SVC-NGINX",
+          "SVC-CLAIMS-API",
+          "SVC-DOCUMENT",
+        ] as ServiceId[],
         acceptanceCriteria: [
           "Supported claims submissions are not terminated by NGINX before the application latency budget expires.",
           "NGINX 504 rate returns to the established baseline for the seeded workload.",

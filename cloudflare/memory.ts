@@ -36,7 +36,8 @@ export async function indexOrganizationMemory(env: Env): Promise<{
   ok: boolean;
   error?: string;
 }> {
-  if (!env.MEMORY) return { indexed: 0, ok: false, error: "MEMORY is not bound" };
+  if (!env.MEMORY)
+    return { indexed: 0, ok: false, error: "MEMORY is not bound" };
 
   try {
     const records = [

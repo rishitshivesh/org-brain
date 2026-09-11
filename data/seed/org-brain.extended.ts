@@ -198,7 +198,8 @@ export const extendedOrgBrainData = {
       to: "SVC-AUDIT",
       protocol: "Kafka",
       topic: "audit.events",
-      description: "Audit consumer normalizes and persists platform audit telemetry.",
+      description:
+        "Audit consumer normalizes and persists platform audit telemetry.",
     },
   ],
   workItems: [
@@ -211,7 +212,12 @@ export const extendedOrgBrainData = {
       description:
         "Standardize WAF, NGINX, timeout, upload and edge-observability policies for public claims traffic.",
       tags: ["edge", "nginx", "waf", "reliability"],
-      relatedServiceIds: ["SVC-WAF", "SVC-NGINX", "SVC-CLAIMS-WEB", "SVC-CLAIMS-API"],
+      relatedServiceIds: [
+        "SVC-WAF",
+        "SVC-NGINX",
+        "SVC-CLAIMS-WEB",
+        "SVC-CLAIMS-API",
+      ],
     },
     {
       id: "ADO-4371",
