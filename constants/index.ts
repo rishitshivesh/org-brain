@@ -7,6 +7,7 @@ import {
   Computer,
   FlaskConical,
   Gauge,
+  GitFork,
   MessageSquare,
   OctagonAlertIcon,
   Send,
@@ -18,6 +19,7 @@ export const APP_ROUTES = {
   work: "/work",
   incidents: "/incidents",
   services: "/services",
+  flows: "/flows",
   graph: "/graph",
   knowledge: "/knowledge",
   scenarioLab: "/scenario-lab",
@@ -48,6 +50,11 @@ export const SIDEBAR_ITEMS = [
     label: "Services",
     href: APP_ROUTES.services,
     icon: Computer,
+  },
+  {
+    label: "Flows",
+    href: APP_ROUTES.flows,
+    icon: GitFork,
   },
   {
     label: "Graph",
