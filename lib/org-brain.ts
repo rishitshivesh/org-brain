@@ -1,4 +1,5 @@
 import seed from "@/data/seed/org-brain.seed.json";
+import { extendedOrgBrainData } from "@/data/seed/org-brain.extended";
 import type {
   ArchitectureDecision,
   Commit,
@@ -13,7 +14,43 @@ import type {
   WorkItem,
 } from "@/types/org-brain";
 
-export const orgBrainData = seed as unknown as OrgBrainData;
+const base = seed as unknown as OrgBrainData;
+
+export const orgBrainData: OrgBrainData = {
+  ...base,
+  teams: [...base.teams, ...(extendedOrgBrainData.teams ?? [])],
+  repositories: [
+    ...base.repositories,
+    ...(extendedOrgBrainData.repositories ?? []),
+  ],
+  services: [...base.services, ...(extendedOrgBrainData.services ?? [])],
+  serviceDependencies: [
+    ...base.serviceDependencies,
+    ...(extendedOrgBrainData.serviceDependencies ?? []),
+  ],
+  workItems: [...base.workItems, ...(extendedOrgBrainData.workItems ?? [])],
+  commits: [...base.commits, ...(extendedOrgBrainData.commits ?? [])],
+  sourceSnapshots: [
+    ...base.sourceSnapshots,
+    ...(extendedOrgBrainData.sourceSnapshots ?? []),
+  ],
+  deployments: [
+    ...base.deployments,
+    ...(extendedOrgBrainData.deployments ?? []),
+  ],
+  incidents: [...base.incidents, ...(extendedOrgBrainData.incidents ?? [])],
+  traces: [...base.traces, ...(extendedOrgBrainData.traces ?? [])],
+  logs: [...base.logs, ...(extendedOrgBrainData.logs ?? [])],
+  metrics: [...base.metrics, ...(extendedOrgBrainData.metrics ?? [])],
+  architectureDecisions: [
+    ...base.architectureDecisions,
+    ...(extendedOrgBrainData.architectureDecisions ?? []),
+  ],
+  relationships: [
+    ...(base.relationships ?? []),
+    ...(extendedOrgBrainData.relationships ?? []),
+  ],
+};
 
 export const byId = <T extends { id: string }>(items: T[], id?: string) =>
   id ? items.find((item) => item.id === id) : undefined;
