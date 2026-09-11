@@ -9,9 +9,20 @@ import type {
 import { listProviderHandoffs } from "./d1-providers";
 import type { Env } from "./env";
 import { InvestigationStateObject } from "./investigation-state";
-import { searchInvestigationMemory } from "./memory";
-import { listInvestigationHistory, persistInvestigation, updatePersistedRemediation } from "./persistence";
-import { patchInvestigation, readInvestigation, writeInvestigation } from "./state-client";
+import {
+  indexOrganizationMemory,
+  searchInvestigationMemory
+} from "./memory";
+import {
+  listInvestigationHistory,
+  persistInvestigation,
+  updatePersistedRemediation
+} from "./persistence";
+import {
+  patchInvestigation,
+  readInvestigation,
+  writeInvestigation
+} from "./state-client";
 import { InvestigationWorkflow } from "./workflow";
 
 export { InvestigationStateObject, InvestigationWorkflow };
@@ -24,9 +35,7 @@ function corsHeaders(env: Env, request: Request): HeadersInit {
     .map((value) => value.trim());
 
   const requestOrigin = request.headers.get("origin");
-
   const allowAny = allowedOrigins.includes("*");
-
   const origin =
     allowAny || (requestOrigin && allowedOrigins.includes(requestOrigin))
       ? (requestOrigin ?? "*")
@@ -268,6 +277,20 @@ export default {
         organizationProviders: env.DB ? "d1" : "seed-fallback",
         memory: env.MEMORY ? "vectorize" : env.DB ? "d1-fallback" : "not-bound"
       });
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/memory/bootstrap") {
+      const result = await indexOrganizationMemory(env);
+      return json(
+        env,
+        request,
+        {
+          runtime: "cloudflare",
+          memory: env.MEMORY ? "vectorize" : "not-bound",
+          ...result
+        },
+        result.ok ? 200 : 503
+      );
     }
 
     if (request.method === "GET" && url.pathname === "/v1/history") {
