@@ -31,6 +31,26 @@ function inspectSource(content: string): string[] {
     );
   }
 
+  const wafThreshold = normalized.match(
+    /anomaly[_\s-]*score[_\s-]*threshold\s*[:=]\s*(\d+)/,
+  )?.[1];
+  if (
+    normalized.includes("request_body_inspection: strict") ||
+    normalized.includes("multipart_form_data: inspect-all")
+  ) {
+    signals.push(
+      `strict WAF multipart body inspection${wafThreshold ? ` with anomaly threshold ${wafThreshold}` : ""}`,
+    );
+  }
+
+  const proxyReadTimeout = normalized.match(
+    /proxy_read_timeout\s+(\d+)(ms|s|m)?/,
+  );
+  if (proxyReadTimeout) {
+    const [, value, unit = "s"] = proxyReadTimeout;
+    signals.push(`NGINX proxy read timeout configured to ${value}${unit}`);
+  }
+
   return signals;
 }
 
@@ -38,6 +58,8 @@ function scoreSignal(signal: string): number {
   if (signal === "awaited work inside a loop") return 35;
   if (signal.startsWith("database pool max")) return 30;
   if (signal.startsWith("retry policy allows")) return 35;
+  if (signal.startsWith("strict WAF multipart body inspection")) return 35;
+  if (signal.startsWith("NGINX proxy read timeout")) return 35;
   return 0;
 }
 
@@ -81,7 +103,7 @@ export async function runChangeAgent(
       ];
 
       if (
-        /document|validat|database|pool|retry|timeout/i.test(
+        /document|validat|database|pool|retry|timeout|waf|multipart|nginx|edge/i.test(
           item.commit.message,
         )
       ) {
@@ -106,8 +128,13 @@ export async function runChangeAgent(
           signals,
         });
 
-        if (/document|validat|database|config|client|retry/i.test(path))
+        if (
+          /document|validat|database|config|client|retry|nginx|waf|policy|claims-api/i.test(
+            path,
+          )
+        ) {
           score += 10;
+        }
         for (const signal of signals) {
           score += scoreSignal(signal);
           evidence.push(`${path}: ${signal}`);
