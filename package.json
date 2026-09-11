@@ -11,10 +11,10 @@
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
     "cf:types": "yarn dlx wrangler@latest types",
-    "cf:dev": "yarn dlx wrangler@latest dev",
-    "cf:deploy": "yarn cf:memory:setup && yarn dlx wrangler@latest deploy",
-    "cf:d1:local": "yarn dlx wrangler@latest d1 migrations apply DB --local",
-    "cf:d1:remote": "yarn dlx wrangler@latest d1 migrations apply DB --remote",
+    "cf:dev": "yarn dlx wrangler@latest dev -c wrangler.local.jsonc",
+    "cf:deploy": "yarn cf:memory:setup && yarn dlx wrangler@latest deploy -c wrangler.jsonc",
+    "cf:d1:local": "yarn dlx wrangler@latest d1 migrations apply DB --local -c wrangler.local.jsonc",
+    "cf:d1:remote": "yarn dlx wrangler@latest d1 migrations apply DB --remote -c wrangler.jsonc",
     "cf:memory:setup": "node scripts/setup-memory.mjs"
   },
   "dependencies": {
