@@ -2,7 +2,7 @@
 
 AI was used as a development assistant while building Org Brain.
 
-This file keeps a small set of representative development commands used for implementation, data generation, debugging and review. It is not intended to contain the complete conversation history.
+This file keeps a representative set of development prompts used for implementation, data generation, debugging and review. It is not intended to reproduce the complete conversation history.
 
 ## Mock organization data
 
@@ -94,7 +94,7 @@ This file keeps a small set of representative development commands used for impl
 
 ## Multi-scenario evidence packs
 
-> Expand Scenario Lab from one canonical latency case into three internally consistent production incidents. Add a database connection-pool regression and a retry-amplification cascade with their own incidents, traces, logs, metrics, deployments, commits, source snapshots and hidden evaluation truth. Keep every reference resolvable.
+> Expand Scenario Lab from one canonical latency case into multiple internally consistent production incidents. Give each failure mode its own incident, traces, logs, metrics, deployment, commit, source snapshot and hidden evaluation truth. Keep every reference resolvable.
 
 ## Generalized change correlation
 
@@ -118,8 +118,48 @@ This file keeps a small set of representative development commands used for impl
 
 ## Architecture and runtime surfaces
 
-> Add in-app Architecture and Runtime views. Explain the deterministic-first agent architecture, provider boundaries, Cloudflare execution path and mocked integrations, and let Runtime health-check the configured Worker so reviewers can verify Workers AI, Workflow and Durable Object bindings are reachable.
+> Add in-app Architecture and Runtime views. Explain the deterministic-first agent architecture, provider boundaries and Cloudflare execution path, and let Runtime health-check the configured Worker so reviewers can verify the active bindings.
 
-## Scenario review
+## D1-backed providers and durable history
 
-> Review the seeded incidents end to end. Verify timestamps, trace IDs, service relationships, deployment versions, commit references and work-item links are internally consistent, and keep public scenario metadata separate from the evaluation answer key.
+> Replace Cloudflare's seed-only provider path with a D1-backed implementation that preserves the existing provider interfaces. Persist investigation history and provider handoffs without making agents depend directly on D1.
+
+## Organizational memory
+
+> Add historical engineering memory for prior RCAs, architecture decisions and work items. Use Vectorize in production, keep historical similarity as precedent rather than causal evidence, and make memory failure non-fatal to investigation execution.
+
+## Human-editable remediation
+
+> Let a reviewer edit generated remediation title, description and acceptance criteria while the Workflow is waiting for approval. Persist the latest draft and make the resumed Workflow read that latest durable version before preparing a provider handoff.
+
+## Work-package generation
+
+> Extend planning intelligence so implementation-oriented work queries can return a structured draft feature plus per-service stories and acceptance criteria, while remaining behind the provider handoff boundary.
+
+## Edge and security topology
+
+> Expand the organization graph beyond application services. Add WAF, NGINX/edge gateway, identity, Redis, Kafka and audit/telemetry relationships so dependency analysis can explain complete request and event paths.
+
+## WAF incident scenario
+
+> Add a deterministic WAF false-positive incident in which legitimate multipart document uploads are blocked before NGINX or claims-api. Include deployment, policy source, trace/log/metric evidence, hidden evaluation truth, and a mitigation that narrows the rule instead of disabling WAF broadly.
+
+## NGINX incident scenario
+
+> Add a deterministic edge-timeout incident where NGINX returns 504 before a supported claims request finishes downstream. Correlate the proxy timeout configuration, application completion evidence and the exact WAF-to-NGINX-to-API path.
+
+## Engineering flows
+
+> Add a reviewer-facing Flows surface generated from the explicit dependency graph. Show representative synchronous, asynchronous, authentication and audit paths rather than hard-coded architecture artwork disconnected from provider data.
+
+## Vectorize local-development failure
+
+> The local Cloudflare investigation fails because the MEMORY Vectorize binding requires remote execution. Separate local and production Wrangler configuration so local Worker, Workflow, Durable Object and D1 can run without a Vectorize binding while production still uses Vectorize.
+
+## D1 memory fallback hardening
+
+> Local historical memory fails with SQLite 'LIKE or GLOB pattern too complex' on long natural-language investigation prompts. Remove complex LIKE/GLOB matching from the fallback path, fetch a bounded recent history window and rank token relevance in Worker code instead.
+
+## Submission review
+
+> Perform a final submission sweep. Do not add new product subsystems. Verify the reviewer docs match the implemented five-scenario WAF/NGINX-aware system, local and production Cloudflare configurations are described correctly, hidden evaluation truth remains server-only, and the final runbook prioritizes format, lint, typecheck, build and smoke testing.
