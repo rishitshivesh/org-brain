@@ -1,6 +1,6 @@
 # Org Brain
 
-Org Brain is an AI-powered engineering intelligence workspace that connects work items, services, repositories, deployments, traces, logs, metrics, incidents and architecture decisions into one coordinated context model.
+Org Brain is an AI-powered engineering intelligence workspace that connects work items, services, repositories, deployments, traces, logs, metrics, incidents, architecture decisions and operational history into one coordinated context model.
 
 The design rule is simple: **programmatic first, AI second**. Explicit relationships are resolved through provider contracts and graph edges before Workers AI is allowed to reason over the resulting evidence.
 
@@ -9,15 +9,16 @@ The design rule is simple: **programmatic first, AI second**. Explicit relations
 ## What is implemented
 
 - Next.js portal using Agent Elements
-- Work, incidents, services, graph, knowledge and Scenario Lab surfaces
-- three deterministic incident evidence packs
+- Work, incidents, services, graph, flows, knowledge, Scenario Lab, history, handoffs, evaluations, architecture and runtime surfaces
+- five deterministic incident evidence packs covering application, database, dependency, WAF and NGINX failure modes
 - five bounded specialists: Work, Observability, Change, Dependency and Knowledge
 - evidence-backed RCA synthesis with hidden-truth evaluation
 - Cloudflare Worker API
 - Cloudflare Workflows orchestration and `waitForEvent` approval pause/resume
 - Durable Object per-investigation state
 - D1-backed organization provider adapter, investigation history and provider-handoff ledger
-- Vectorize organizational memory for prior RCAs, ADRs and work items, with D1 history fallback
+- Vectorize organizational memory for prior RCAs, ADRs and work items in production
+- D1-backed local history retrieval when Vectorize is intentionally absent from local Wrangler configuration
 - Workers AI Llama 3.3 synthesis through AI Gateway
 - editable remediation drafts before approval
 - generated feature/story work packages for planning questions
@@ -31,13 +32,14 @@ The design rule is simple: **programmatic first, AI second**. Explicit relations
 - `/incidents` — incident evidence and change context
 - `/services` — service catalog and dependencies
 - `/graph` — explicit organization relationships
+- `/flows` — end-to-end request/event paths across WAF, NGINX, APIs, Kafka, identity, audit and downstream services
 - `/knowledge` — architecture decisions
 - `/scenario-lab` — repeatable deterministic failures
 - `/history` — D1 investigation history + organization memory search
 - `/handoffs` — approved D1-backed provider handoff ledger
 - `/evaluations` — hidden-truth RCA regression scoring
 - `/architecture` — reviewer-facing system design
-- `/runtime` — live Worker/binding health
+- `/runtime` — live Worker/binding health and memory bootstrap control
 - `/remediation/[id]` — editable durable remediation draft while an RCA waits for approval
 
 ## Architecture
@@ -75,7 +77,37 @@ D1 provider handoff ledger
 historical RCA memory
 ```
 
-The same specialist/context code runs against mock providers locally and a D1-backed provider implementation in the Cloudflare Workflow. External Azure DevOps, GitHub, Elastic/ClickHouse and deployment adapters remain intentionally outside the demo mutation boundary.
+The same specialist/context code runs against provider interfaces in every environment. The Cloudflare Workflow uses the D1-backed provider implementation; the frontend can still use the deterministic seed-backed provider when no remote runtime URL is configured. External Azure DevOps, GitHub, Elastic/ClickHouse and deployment adapters remain intentionally outside the demo mutation boundary.
+
+## Engineering topology
+
+The seeded organization now includes application and platform layers rather than a single claims service chain. Representative paths include:
+
+```text
+Internet
+  ↓
+WAF
+  ↓
+NGINX / edge gateway
+  ↓
+claims-web
+  ↓
+claims-api
+  ├─ rules-engine
+  ├─ document-service
+  ├─ identity-service
+  ├─ Redis
+  ├─ Kafka
+  └─ audit / telemetry
+
+Kafka
+  ↓
+claims-worker
+  ↓
+document-service
+```
+
+`/flows` renders these paths from the same dependency graph used by the Dependency Agent.
 
 ## Investigation flow
 
@@ -109,11 +141,13 @@ Historical memory is precedent only. It is explicitly prevented from becoming pr
 
 ## Scenario Lab
 
-The three seeded scenarios have separate traces, logs, metrics, deployments, commits and source snapshots:
+Five seeded scenarios have independent traces, logs, metrics, deployments, commits, source snapshots and hidden evaluation contracts:
 
-1. sequential document validation regression
-2. database connection-pool exhaustion
-3. retry amplification / cascading dependency failure
+1. `INC-2409` — sequential document validation regression
+2. `INC-2417` — database connection-pool exhaustion
+3. `INC-2424` — retry amplification / cascading dependency failure
+4. `INC-2431` — WAF false-positive blocking legitimate document uploads
+5. `INC-2438` — NGINX proxy timeout returning 504 while the application completes
 
 Public scenario metadata is separate from `data/scenarios/evaluation.ts`. Runtime agents never import the hidden expected answer.
 
@@ -125,13 +159,15 @@ Dimensions include evidence coverage, affected-service attribution, deployment a
 
 ## Cloudflare resources
 
-`wrangler.jsonc` configures:
+Production `wrangler.jsonc` configures:
 
 - `AI` — Workers AI
-- `DB` — D1, automatically provisioned by current Wrangler when missing
+- `DB` — D1
 - `INVESTIGATIONS` — SQLite-backed Durable Object
 - `INVESTIGATION_WORKFLOW` — Cloudflare Workflow
-- `MEMORY` — Vectorize binding added by the repeatable memory setup command
+- `MEMORY` — Vectorize
+
+Local `wrangler.local.jsonc` deliberately omits Vectorize because Vectorize has no local emulator. Local history/memory behavior falls back to D1 while Workers AI remains a remote binding.
 
 Models:
 
@@ -150,35 +186,37 @@ PATCH /v1/investigations/:id/remediation
 POST  /v1/investigations/:id/approval
 GET   /v1/history
 GET   /v1/memory/search?q=...
+POST  /v1/memory/bootstrap
 GET   /v1/handoffs
 ```
 
 ## Run locally
 
-Install and run the frontend:
+Install dependencies and initialize local D1:
 
 ```bash
 yarn install
-yarn dev
-```
-
-Start the Cloudflare runtime:
-
-```bash
+yarn cf:d1:local
 yarn cf:dev
 ```
 
-Then configure `.env.local`:
+`cf:dev` uses `wrangler.local.jsonc`, so local development does **not** require a Vectorize binding.
+
+Configure `.env.local`:
 
 ```bash
 NEXT_PUBLIC_ORG_BRAIN_API_URL=http://localhost:8787
 ```
 
+Then run the frontend:
+
+```bash
+yarn dev
+```
+
 The Ask header and `/runtime` page clearly show whether the browser is using the Cloudflare runtime or local fallback.
 
-## Persistence setup
-
-D1 tables self-initialize at runtime and the SQL migration is also checked in under `migrations/`.
+## Production memory + deploy
 
 Vectorize setup is repeatable:
 
@@ -186,17 +224,18 @@ Vectorize setup is repeatable:
 yarn cf:memory:setup
 ```
 
-The command creates `org-brain-memory` if necessary and adds the `MEMORY` binding to `wrangler.jsonc`.
+The command creates `org-brain-memory` if necessary and keeps the production `MEMORY` binding in `wrangler.jsonc`.
 
-## Deploy
-
-Authenticate Wrangler and run:
+Apply remote D1 migrations and deploy:
 
 ```bash
+yarn cf:d1:remote
 yarn cf:deploy
 ```
 
-`cf:deploy` ensures the Vectorize memory resource/binding exists before deploying the Worker. Set `ALLOWED_ORIGIN` to the deployed frontend origin and point the frontend's `NEXT_PUBLIC_ORG_BRAIN_API_URL` at the Worker URL.
+Set `ALLOWED_ORIGIN` to the deployed frontend origin and point the frontend's `NEXT_PUBLIC_ORG_BRAIN_API_URL` at the Worker URL.
+
+After deployment, `/runtime` can bootstrap ADR/work-item organizational vectors once. Normal investigation requests do not repeatedly rebuild the organization-memory index.
 
 ## Safety boundary
 
@@ -208,8 +247,6 @@ Org Brain does not silently mutate production systems.
 - approved remediation becomes a provider handoff record in D1
 - no real rollback or third-party work-item creation happens in the submitted demo
 
-This makes the integration boundary demonstrable without pretending a demo account should be allowed to rearrange production infrastructure for dramatic effect.
-
 ## Quality gate
 
 ```bash
@@ -217,7 +254,6 @@ yarn format
 yarn lint
 yarn typecheck
 yarn build
-yarn cf:dev
 ```
 
-The repository also includes the exact reviewer demo path in [`DEMO-CHECKLIST.md`](./DEMO-CHECKLIST.md).
+Then smoke-test the Worker separately with `yarn cf:dev` and follow [`DEMO-CHECKLIST.md`](./DEMO-CHECKLIST.md).
