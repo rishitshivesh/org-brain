@@ -14,17 +14,12 @@ yarn build
 
 Do not record around a TypeScript/build failure.
 
-## 2. Cloudflare setup
+## 2. Local Cloudflare setup
 
-Authenticate Wrangler, then ensure the memory resource exists:
-
-```bash
-yarn cf:memory:setup
-```
-
-Start the Worker:
+Local development intentionally does **not** use Vectorize because Vectorize has no local emulator. Local history/memory falls back to D1 while Workers AI remains a remote binding.
 
 ```bash
+yarn cf:d1:local
 yarn cf:dev
 ```
 
@@ -47,7 +42,7 @@ Open `/runtime`. Confirm the Worker is online and inspect:
 - Workflow
 - Durable Object state
 - D1 organization provider/history
-- Vectorize memory, or D1 fallback if the local Vectorize binding is unavailable
+- D1 fallback memory in local mode
 
 ## 3. Primary demo — incident RCA
 
@@ -71,7 +66,7 @@ Expected evidence:
 
 The Agent Elements activity should visibly separate trace/log/metric inspection, deployment/commit/source inspection, historical-memory search and RCA synthesis.
 
-## 4. Edit the remediation before approval
+## 4. Edit remediation before approval
 
 While the investigation is `waiting-approval`, copy its investigation ID from Ask or History and open:
 
@@ -80,8 +75,6 @@ While the investigation is `waiting-approval`, copy its investigation ID from As
 ```
 
 Change one acceptance criterion and click **Save durable draft**.
-
-This demonstrates that generated actions are reviewable artifacts, not immutable LLM output.
 
 ## 5. Human approval + provider handoff
 
@@ -95,58 +88,55 @@ Verify:
 - `/handoffs` contains a D1-backed prepared work-item handoff
 - external mutations remain `0`
 
-The safety story is deliberate: proposal → human review → approval → provider boundary. No silent production rollback occurs.
+## 6. Closed-loop memory
 
-## 6. Demonstrate closed-loop memory
+Open `/history` and confirm the completed RCA appears in D1 history.
 
-Open `/history`.
+Local search uses bounded D1 ranking. In production, after Vectorize is configured/bootstraped, organization memory can also return prior RCA, ADR and work-item vectors.
 
-Confirm the completed RCA appears in D1 history, then search:
+## 7. Strong edge/security demo — WAF
 
-> claims latency document validation
+Inject **WAF blocks legitimate document uploads**.
 
-With Vectorize bound, results can include prior RCA, ADR and work-item memory. Without it, incident history falls back to D1 text retrieval.
+> Investigate INC-2431. Determine whether the 403s originate at WAF, NGINX or claims-api, correlate the latest edge-policy change, preserve security controls, and propose the narrowest safe mitigation.
 
-Then run another incident and observe **Searched investigation memory** inside Ask before Workers AI synthesis.
+Expected shape:
 
-## 7. Secondary scenario — database pool exhaustion
+- `INC-2431`
+- trace `tr_waf_31fd2c`
+- deployment `DEP-2244`
+- commit `f3a21d9`
+- WAF is the rejection layer
+- legitimate multipart traffic is blocked before reaching the app
+- mitigation narrows the rule rather than disabling WAF broadly
 
-Inject **Intermittent checkout timeouts** and use its guided prompt.
+Then open `/flows` to show the explicit WAF → NGINX → application path.
 
-Expected investigation shape:
+## 8. Edge timeout demo — NGINX
 
-- `INC-2417`
-- `tr_4cc71d02`
-- `DEP-2214`
-- commit `c41db71`
-- `db.acquireConnection` dominates
-- pool max `24 → 6`
-- pending acquisitions `1 → 31`
-- checkout p95 `312 ms → 2260 ms`
-- CPU remains close to baseline
+Inject **NGINX returns 504 while claims-api succeeds**.
 
-Expected conclusion: connection-pool capacity/configuration regression, not generic CPU saturation.
+> Investigate INC-2438. Explain why users receive 504 while claims-api reports success, inspect the WAF-to-NGINX-to-API-to-document path, correlate recent NGINX configuration, and recommend a bounded timeout fix.
 
-## 8. Secondary scenario — retry amplification
+Expected shape:
 
-Inject **Cascading downstream failures** and use its guided prompt.
+- `INC-2438`
+- trace `tr_nginx_81ce7a`
+- deployment `DEP-2250`
+- commit `b7d992a`
+- NGINX proxy timeout is below the supported application latency budget
+- downstream application work can complete after the edge has already returned 504
 
-Expected investigation shape:
+## 9. Other seeded scenarios
 
-- `INC-2424`
-- `tr_92f4ad10`
-- `DEP-2231`
-- commit `a90ed31`
-- repeated document validation attempts
-- requests per claim `1.1 → 4.7`
-- document-service traffic `390 → 1840 rps`
-- document-service error rate `0.8% → 18.6%`
+The reviewer can also explore:
 
-Expected conclusion: aggressive retry behavior amplifies a downstream slowdown into a wider failure cascade.
+- `INC-2417` — database connection-pool exhaustion
+- `INC-2424` — retry amplification / cascading dependency failure
 
-Only show one secondary scenario in the recorded demo unless time permits.
+All five scenarios have hidden server-only evaluation contracts.
 
-## 9. Planning intelligence + work package
+## 10. Planning intelligence + work package
 
 Ask:
 
@@ -159,15 +149,13 @@ Expected context:
 - affected services
 - `ADR-018`
 - Work Agent activity
-- a generated feature + per-service Story package with acceptance criteria
+- generated feature + per-service Story package with acceptance criteria
 
-This proves Org Brain handles forward planning as well as incidents.
-
-## 10. Evaluation harness
+## 11. Evaluation harness
 
 Open `/evaluations`.
 
-Explain that each seeded incident is run through the same orchestrator and scored against a **server-only** hidden evaluation contract on:
+Explain that all five seeded incidents are run through the same orchestrator and scored against a **server-only** hidden evaluation contract on:
 
 - evidence coverage
 - service attribution
@@ -177,9 +165,9 @@ Explain that each seeded incident is run through the same orchestrator and score
 
 The browser receives scores, not the answer key.
 
-## 11. Architecture + runtime close
+## 12. Architecture + runtime close
 
-Open `/architecture` and show the closed loop:
+Open `/architecture` and show:
 
 ```text
 D1 providers
@@ -194,7 +182,24 @@ D1 providers
 
 Then `/runtime` proves the configured Cloudflare components are reachable.
 
-## 12. Cloudflare products to name
+## 13. Production deployment
+
+```bash
+yarn cf:memory:setup
+yarn cf:d1:remote
+yarn cf:deploy
+```
+
+Configure production:
+
+```text
+ALLOWED_ORIGIN=https://<frontend-origin>
+NEXT_PUBLIC_ORG_BRAIN_API_URL=https://<worker-origin>
+```
+
+Open `/runtime` against the deployed Worker. Bootstrap organization memory once if the Vectorize index is empty.
+
+## 14. Cloudflare products to name
 
 - Workers
 - Workers AI
@@ -204,7 +209,31 @@ Then `/runtime` proves the configured Cloudflare components are reachable.
 - D1
 - Vectorize
 
-## 13. Files reviewers should see
+## 15. Final sanity pass
+
+- `yarn format`
+- `yarn lint`
+- `yarn typecheck`
+- `yarn build`
+- `yarn cf:dev`
+- `/runtime` reports Worker online
+- all five Scenario Lab fixtures open the correct incident
+- guided prompt copy works
+- `/flows` renders edge/application paths
+- long chat/tables scroll correctly
+- remediation can be edited before approval and not after
+- approval resumes the Workflow
+- approved remediation appears under `/handoffs`
+- history persists after refresh
+- local memory search handles long natural-language prompts without SQLite LIKE/GLOB failures
+- memory search does not expose hidden evaluation truth
+- no console-breaking client error
+- CORS origin matches deployed frontend
+- no secret or `.env.local` is committed
+- `data/scenarios/evaluation.ts` is not imported by client/runtime agent code
+- repository visibility/access matches submission requirements
+
+## 16. Files reviewers should see
 
 - `SUBMISSION.md`
 - `README.md`
@@ -216,29 +245,10 @@ Then `/runtime` proves the configured Cloudflare components are reachable.
 - `cloudflare/persistence.ts`
 - `cloudflare/memory.ts`
 - `cloudflare/investigation-state.ts`
+- `wrangler.jsonc`
+- `wrangler.local.jsonc`
 - `agents/`
 - `lib/context-builders.ts`
 - `data/scenarios/`
+- `app/flows/`
 - `app/evaluations/`
-
-## 14. Final sanity pass
-
-- `yarn format`
-- `yarn lint`
-- `yarn typecheck`
-- `yarn build`
-- `yarn cf:dev`
-- `/runtime` reports Worker online
-- all three scenarios open the correct incident
-- guided prompt copy works
-- long chat/tables scroll correctly
-- remediation can be edited before approval and not after
-- approval resumes the Workflow
-- approved remediation appears under `/handoffs`
-- history persists after refresh
-- memory search does not expose hidden evaluation truth
-- no console-breaking client error
-- CORS origin matches deployed frontend
-- no secret or `.env.local` is committed
-- `data/scenarios/evaluation.ts` is not imported by client/runtime agent code
-- repository visibility/access matches submission requirements
