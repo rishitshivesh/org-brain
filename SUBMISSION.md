@@ -16,7 +16,7 @@ The submitted runtime uses:
 - **Workflows** for durable multi-step investigation execution
 - **Durable Objects** for strongly coordinated per-investigation state
 - **D1** for persisted organization entities, investigation history and provider handoffs
-- **Vectorize** for organization memory across prior RCAs, ADRs and work items
+- **Vectorize** for production organization memory across prior RCAs, ADRs and work items
 
 ```mermaid
 flowchart LR
@@ -46,7 +46,7 @@ flowchart LR
   WF --> M
 ```
 
-The same agent/context code can still run locally against the seed-backed mock implementation. Inside Cloudflare, the Workflow self-seeds the coherent demo organization into D1 once and runs those same provider interfaces against persisted data.
+The same specialist/context code runs against provider interfaces in every environment. Cloudflare uses the D1-backed provider implementation. When the browser has no Worker URL configured, the portal can still use the deterministic seed-backed provider locally.
 
 ## Agent model
 
@@ -58,7 +58,7 @@ Org Brain deliberately avoids an unconstrained autonomous loop. At most three re
 - **Dependency Agent** — explicit upstream/downstream traversal and blast radius
 - **Knowledge Agent** — ADRs and architecture constraints
 
-Incident analysis keeps observation and code attribution separate before synthesis.
+Incident analysis keeps observation and code/config attribution separate before synthesis.
 
 ## Closed-loop investigation
 
@@ -84,21 +84,27 @@ D1 history + Vectorize organizational memory
 
 Historical memory is context, never causal proof. Workers AI is explicitly instructed not to treat a similar past incident as evidence that the current incident has the same root cause.
 
+## Engineering topology
+
+The final demo includes application and platform layers, including WAF, NGINX/edge routing, claims frontend/API/worker, rules, documents, identity, Redis, Kafka and audit/telemetry paths. `/flows` renders representative request/event paths from the same explicit dependency graph used by the Dependency Agent.
+
 ## Scenario Lab
 
-The submitted demo contains three deterministic incident packs rather than one hard-coded happy path:
+The submitted demo contains five deterministic incident packs rather than one hard-coded happy path:
 
-| Scenario | Failure mode | Strongest evidence | Correlated change |
-| --- | --- | --- | --- |
-| `INC-2409` | sequential validation latency | 3.4s document span, consumer lag | `DEP-2198` / `8fc19b2` |
-| `INC-2417` | database pool exhaustion | ~2s connection acquisition, pending pool pressure | `DEP-2214` / `c41db71` |
-| `INC-2424` | retry amplification | repeated validation attempts, request amplification | `DEP-2231` / `a90ed31` |
+| Scenario | Failure mode | Correlated change |
+| --- | --- | --- |
+| `INC-2409` | sequential document validation latency | `DEP-2198` / `8fc19b2` |
+| `INC-2417` | database pool exhaustion | `DEP-2214` / `c41db71` |
+| `INC-2424` | retry amplification | `DEP-2231` / `a90ed31` |
+| `INC-2431` | WAF false-positive blocks legitimate multipart uploads | `DEP-2244` / `f3a21d9` |
+| `INC-2438` | NGINX proxy timeout returns 504 while the app completes | `DEP-2250` / `b7d992a` |
 
 Each has independent trace, log, metric, deployment, commit and source evidence. Public scenario metadata does not expose hidden expected root causes.
 
 ## Evaluation harness
 
-`/evaluations` executes the production orchestrator against the same scenarios and scores its structured RCA against server-only hidden contracts.
+`/evaluations` executes the production orchestrator against the same five scenarios and scores its structured RCA against server-only hidden contracts.
 
 The rubric checks:
 
@@ -116,9 +122,11 @@ Planning questions use the same organization model rather than a separate demo p
 
 Example:
 
-> What changes if we support partial settlement for OPD claims?
+> Plan the implementation for partial settlement support for OPD claims and break it down into work items.
 
-Org Brain resolves `ADO-4231`, its explicit conflict with `ADO-3988`, affected services and relevant ADR constraints. For implementation/planning language the Work Agent also returns a structured draft package containing a feature plus per-service implementation stories and acceptance criteria.
+Org Brain resolves `ADO-4231`, its explicit conflict with `ADO-3988`, affected services and relevant ADR constraints. The Work Agent returns a structured draft package containing a feature plus per-service implementation stories and acceptance criteria.
+
+The expanded organization data also supports edge/security planning questions around WAF, NGINX, authentication, audit and observability ownership.
 
 ## Human-reviewed remediation
 
@@ -139,13 +147,13 @@ After RCA synthesis:
 
 `/history` exposes D1-backed investigation history and organization-memory search.
 
-When Vectorize is bound, Org Brain embeds and retrieves:
+In production, Vectorize can store/retrieve:
 
 - accepted architecture decisions
 - work-item context
 - completed/root-caused incident summaries
 
-If Vectorize is unavailable, historical incident search degrades to a D1 text-search fallback rather than breaking the investigation Workflow.
+Local Wrangler configuration deliberately omits Vectorize because it has no local emulator. Local memory retrieval degrades to a bounded D1 history-ranking path instead of breaking the Workflow. Production Vectorize calls are also fail-soft, so a memory failure cannot fail an otherwise valid investigation.
 
 ## What is real in the submission
 
@@ -153,7 +161,7 @@ If Vectorize is unavailable, historical incident search degrades to a D1 text-se
 - bounded specialist orchestration
 - deterministic context resolution
 - D1-backed organization provider implementation
-- three independent incident evidence packs
+- five independent incident evidence packs
 - hidden-truth RCA evaluation
 - failure-mode-specific RCA and remediation generation
 - Workers API
@@ -161,11 +169,11 @@ If Vectorize is unavailable, historical incident search degrades to a D1 text-se
 - Cloudflare Workflows
 - Durable Objects
 - D1 investigation/history/provider-handoff persistence
-- Vectorize organizational memory
+- Vectorize organizational memory in production
+- D1 local memory fallback
 - editable durable remediation
 - human approval pause/resume
-- local deterministic fallback
-- runtime health, architecture, history, handoff and evaluation surfaces
+- runtime health, flows, architecture, history, handoff and evaluation surfaces
 
 ## Intentionally externalized
 
@@ -176,7 +184,7 @@ The submitted project does not require reviewer credentials for real enterprise 
 - Elastic / ClickHouse
 - Kubernetes/deployment rollback systems
 
-The Cloudflare runtime persists provider-shaped demo data in D1 behind the same interfaces those production adapters would implement. Approval produces a durable handoff record, not an unreviewed production mutation.
+Approval produces a durable provider handoff record, not an unreviewed production mutation.
 
 ## Safety / reliability choices
 
@@ -186,6 +194,7 @@ The Cloudflare runtime persists provider-shaped demo data in D1 behind the same 
 - historical similarity is explicitly separated from current evidence
 - RCA confidence comes from deterministic specialist evidence, not an invented LLM number
 - Workers AI has deterministic fallback
+- Vectorize has D1 fallback and cannot kill the investigation path
 - Workflows persist multi-step execution
 - human approval is distinct from execution
 - remediation edits are only allowed while waiting for approval
@@ -196,26 +205,28 @@ The Cloudflare runtime persists provider-shaped demo data in D1 behind the same 
 
 The shortest useful sequence is:
 
-1. `/scenario-lab` → inject `INC-2409`
+1. `/scenario-lab` → inject `INC-2409` or the edge-security `INC-2431`
 2. `/` → run the guided RCA prompt
 3. observe specialist/tool activity and memory lookup
 4. open `/remediation/<investigation-id>` and edit one acceptance criterion
 5. approve remediation in Ask
 6. `/handoffs` → show the durable provider-handoff record
-7. run `INC-2417` or `INC-2424`
+7. `/flows` → show the explicit WAF → NGINX → application path
 8. `/history` → search organization memory
-9. `/evaluations` → show hidden-truth regression scoring
+9. `/evaluations` → show hidden-truth regression scoring across all five scenarios
 10. `/architecture` and `/runtime` → show how the system is actually wired
 
 See [`DEMO-CHECKLIST.md`](./DEMO-CHECKLIST.md) for exact prompts.
 
-## Run
+## Run locally
 
 ```bash
 yarn install
-yarn cf:memory:setup
+yarn cf:d1:local
 yarn cf:dev
 ```
+
+`cf:dev` uses `wrangler.local.jsonc`, which has no Vectorize binding and uses D1 fallback memory locally.
 
 Frontend `.env.local`:
 
@@ -232,10 +243,11 @@ yarn dev
 ## Deploy
 
 ```bash
+yarn cf:d1:remote
 yarn cf:deploy
 ```
 
-Current Wrangler automatically provisions the D1 resource from the checked-in binding when needed. `cf:deploy` also creates/binds the 768-dimensional `org-brain-memory` Vectorize index before deployment.
+`cf:deploy` ensures the production Vectorize resource/binding exists before deploying the Worker.
 
 Set the Worker `ALLOWED_ORIGIN` to the deployed frontend origin and point `NEXT_PUBLIC_ORG_BRAIN_API_URL` at the deployed Worker.
 
@@ -246,8 +258,9 @@ yarn format
 yarn lint
 yarn typecheck
 yarn build
-yarn cf:dev
 ```
+
+Then smoke-test `yarn cf:dev` separately.
 
 ## AI-assisted development
 
